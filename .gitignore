@@ -6,5 +6,4 @@ client/dist/
 server/node_modules/
 
 # General
-.env
 .DS_Store
