@@ -24,10 +24,10 @@ export const menuItemsData = [
 ];
 
 export const dummyUserData = {
-    "_id": "user_2zdFoZib5lNr614LgkONdD8WG32",
-    "email": "admin@example.com",
-    "full_name": "John Warren",
-    "username": "john_warren",
+    "_id": "user_30jnVSeZsVLRG5VKAVyjAni0a4E",
+    "email": "sints2001@gmail.com",
+    "full_name": "Sint Sint Hlaing",
+    "username": "sint_sint_hlaing",
     "bio": "🌍 Dreamer | 📚 Learner | 🚀 Doer\r\nExploring life one step at a time.\r\n✨ Staying curious. Creating with purpose.",
     "profile_picture": sample_profile,
     "cover_photo": sample_cover,
