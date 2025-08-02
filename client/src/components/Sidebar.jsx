@@ -3,12 +3,15 @@ import { assets, dummyUserData } from "../assets/assets";
 import { Link, useNavigate } from "react-router-dom";
 import MenuItems from "./MenuItems";
 import { CirclePlus, LogOut } from "lucide-react";
-import { useClerk, UserButton } from "@clerk/clerk-react";
+import {UserButton,useClerk} from "@clerk/clerk-react";
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     const user = dummyUserData
   const {signOut} = useClerk()
   const navigate = useNavigate();
+  const user = dummyUserData
+  const {signOut} = useClerk()
+
   return (
     <div
       className={`w-60 xl:w-72  bg-white border-r border-gray-200 flex flex-col justify-between items-center max-sm:absolute top-0 bottom-0 x-20 ${
