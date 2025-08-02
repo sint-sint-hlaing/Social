@@ -1,11 +1,15 @@
 import React from "react";
-import { assets } from "../assets/assets";
+import { assets, dummyUserData } from "../assets/assets";
 import { Link, useNavigate } from "react-router-dom";
 import MenuItems from "./MenuItems";
-import { CirclePlus } from "lucide-react";
+import { CirclePlus, LogOut } from "lucide-react";
+import {UserButton,useClerk} from "@clerk/clerk-react";
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const navigate = useNavigate();
+  const user = dummyUserData
+  const {signOut} = useClerk()
+
   return (
     <div
       className={`w-60 xl:w-72  bg-white border-r border-gray-200 flex flex-col justify-between items-center max-sm:absolute top-0 bottom-0 x-20 ${
@@ -29,7 +33,16 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           Create Post
         </Link>
       </div>
-
+      <div className="w-full border-t border-gray-200 p-4 px-7 flex items-center justify-between">
+        <div className="flex gap-2 items-center cursor-pointer">
+          <UserButton />
+          <div>
+            <h1 className="text-sm font-medium">{user.full_name}</h1>
+            <p className="text-xs text-gray-500">@{user.username}</p>
+          </div>
+        </div>
+        <LogOut  onClick={signOut} className="w-4.5 text-gray-400 hover:text-gray-700 transition cursor-pointer" />
+      </div>
     </div>
   );
 };
