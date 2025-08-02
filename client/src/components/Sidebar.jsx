@@ -9,8 +9,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     const user = dummyUserData
   const {signOut} = useClerk()
   const navigate = useNavigate();
-  const user = dummyUserData
-  const {signOut} = useClerk()
 
   return (
     <div
