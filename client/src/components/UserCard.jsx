@@ -1,9 +1,9 @@
 import React from "react";
 import { dummyUserData } from "../assets/assets";
-import { MapPin, MessageCircle, UserPlus } from "lucide-react";
+import { MapPin, MessageCircle, Plus, UserPlus } from "lucide-react";
 
 const UserCard = ({ user }) => {
-  const currentData = dummyUserData;
+  const currentUser = dummyUserData;
   const handleFollow = async () => {};
   const handleConnectionRequest = async () => {};
   return (
@@ -35,7 +35,7 @@ const UserCard = ({ user }) => {
         hover:from-indigo-600 hover:to-purple-700 active:scale-95 transition text-white cursor-pointer'>
           <UserPlus className='w-4 h-4'/> {currentUser?.following.includes(user._id) ? 'Following' :'Follow'}
         </button>
-        <button onClick={handleConnectionRequest} className='flesx items-center justify-center w-16 border text-slate-500 group rounded-md curspr-pointer active:scale-95 transition'>
+        <button onClick={handleConnectionRequest} className='flex items-center justify-center w-16 border text-slate-500 group rounded-md curspr-pointer active:scale-95 transition'>
           {
             currentUser?.connections.includes(user._id) ? 
             <MessageCircle className='w-5 h-5 group-hover:scale-105 transition'/>
