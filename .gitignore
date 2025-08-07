@@ -1,9 +1,0 @@
-# Frontend
-client/node_modules/
-client/dist/
-
-# Backend
-server/node_modules/
-
-# General
-.DS_Store
