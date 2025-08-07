@@ -13,7 +13,7 @@ import { useUser } from '@clerk/clerk-react'
 import { Toaster} from 'react-hot-toast'
 
 const App = () => {
-  const user = useUser();
+  const {user} = useUser();
   return (
     <>
     <Toaster />
