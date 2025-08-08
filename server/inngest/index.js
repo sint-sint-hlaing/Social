@@ -7,8 +7,9 @@ export const inngest = new Inngest({ id: "knowledgehive-app" });
 // Ingest function to save user data to a database
 const syncUserCreation = inngest.createFunction(
     {id: 'sync-user-from-clerk'},
-    {event: 'clerk.user.created'},
+    {event: 'clerk/user.created'},
     async({event}) => {
+      console.log('syncUserCreation triggered with event:', event);
         const {id,first_name,last_name,email_address,image_url} = event.data
         let username = email_address[0].email_address.split('@')[0]
 
@@ -32,7 +33,7 @@ const syncUserCreation = inngest.createFunction(
 // Image function to update user data in database
 const syncUserUpdation = inngest.createFunction(
     {id: 'update-user-from-clerk'},
-    {event: 'clerk.user.updated'},
+    {event: 'clerk/user.updated'},
     async({event}) => {
         const {id,first_name,last_name,email_address,image_url} = event.data
 
@@ -51,7 +52,7 @@ const syncUserUpdation = inngest.createFunction(
 // Image function to delete user data from database
 const syncUserDeletion = inngest.createFunction(
     {id: 'delete-user-from-clerk'},
-    {event: 'clerk.user.deleted'},
+    {event: 'clerk/user.deleted'},
     async({event}) => {
         const {id} = event.data
         await User.findByIdAndDelete(id)
