@@ -14,21 +14,20 @@ const syncUserCreation = inngest.createFunction(
   { event: 'clerk/user.created' },
   async ({ event }) => {
     try {
-      console.log('syncUserCreation triggered:', event);
+      console.log('syncUserCreation triggered with event:', event);
       await connectDB();
 
       const { id, first_name, last_name, email_addresses, image_url } = event.data;
 
       if (!email_addresses || email_addresses.length === 0) {
-        throw new Error("No email addresses found in event data");
+        throw new Error('No email addresses found in event data');
       }
 
       const email = email_addresses[0].email_address;
       let username = email.split('@')[0];
 
-      const existingUser = await User.findOne({ username });
-
-      if (existingUser) {
+      const user = await User.findOne({ username });
+      if (user) {
         username = username + Math.floor(Math.random() * 10000);
       }
 
@@ -48,6 +47,7 @@ const syncUserCreation = inngest.createFunction(
     }
   }
 );
+
 
 
 
