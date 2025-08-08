@@ -1,5 +1,6 @@
 import { Inngest } from "inngest";
 import User from "../models/User.js";
+import connectDB from "../config/db.js";
 
 // Create a client to send and receive events
 export const inngest = new Inngest({
@@ -9,29 +10,44 @@ export const inngest = new Inngest({
 
 // Ingest function to save user data to a database
 const syncUserCreation = inngest.createFunction(
-    {id: 'sync-user-from-clerk'},
-    {event: 'clerk/user.created'},
-    async({event}) => {
-      console.log('syncUserCreation triggered with event:', event);
-        const {id,first_name,last_name,email_address,image_url} = event.data
-        let username = email_address[0].email_address.split('@')[0]
+  { id: "sync-user-from-clerk" },
+  { event: "clerk/user.created" },
+  async ({ event }) => {
+    try {
+      console.log("syncUserCreation triggered:", event);
+      await connectDB();
 
-        // Check availability of username
-        const user = await User.findOne({username})
+      const { id, first_name, last_name, email_addresses, image_url } = event.data;
 
-        if(user){
-            username = username + Math.floor(Math.random() * 10000 )
-        }
-        const userData={
-            _id: id,
-            email: email_address[0].email_address,
-            full_name: first_name+ " " +last_name,
-            profile_picture: image_url,
-            username
-        }
-        await User.create(userData)
+      if (!email_addresses || email_addresses.length === 0) {
+        throw new Error("No email addresses found in event data");
+      }
+
+      let username = email_addresses[0].email_address.split("@")[0];
+
+      const existingUser = await User.findOne({ username });
+
+      if (existingUser) {
+        username = username + Math.floor(Math.random() * 10000);
+      }
+
+      const userData = {
+        _id: id,
+        email: email_addresses[0].email_address,
+        full_name: `${first_name} ${last_name}`,
+        profile_picture: image_url,
+        username,
+      };
+
+      await User.create(userData);
+      console.log("✅ User saved to DB:", userData);
+    } catch (error) {
+      console.error("❌ Error in syncUserCreation:", error);
+      throw error;
     }
-)
+  }
+);
+
 
 // Image function to update user data in database
 const syncUserUpdation = inngest.createFunction(
