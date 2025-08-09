@@ -4,14 +4,35 @@ import { Plus } from "lucide-react";
 import moment from "moment";
 import StoryModal from "./StoryModal";
 import StoryViewer from "./StoryViewer";
+import { useAuth } from "@clerk/clerk-react";
+import api from "../api/axios";
+import toast from "react-hot-toast";
 
 const StoriesBar = () => {
-  const [Stories, setStories] = useState([]);
+
+  const {getToken} = useAuth()
+
+  const [stories, setStories] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [viewStory, setViewStory] = useState(null);
 
   const fetchStories = async () => {
-    setStories(dummyStoriesData);
+    try{
+      const token = await getToken();
+      const {data} = await api.get('/api/story/get',{
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      })
+      if(data.success){
+        setStories(data.stories)
+      }else{
+        toast.error(data.message)
+      }
+    }catch(error){
+        toast.error(error.message)
+
+    }
   };
 
   useEffect(() => {
@@ -27,7 +48,7 @@ const StoriesBar = () => {
         {/* Add Story Card */}
         <div onClick={()=>setShowModal(true)}
           className="rounded-lg shadow-sm min-w-30 max-w-30 max-h-40 aspect-
-                [3/4] cursor-pointer hover:shadow-lg transation-all duration-200
+                [3/4] cursor-pointer hover:shadow-lg transition-all duration-200
                 border-2 border-dashed border-indigo-300 bg-gradient-to-b from-indigo-50 to-white"
         >
           <div className="h-full flex flex-col items-center justify-center p-4">
@@ -40,7 +61,7 @@ const StoriesBar = () => {
           </div>
         </div>
         {/* Story Card */}
-        {Stories.map((story, index) => (
+        {stories?.map((story, index) => (
           <div onClick={() => setViewStory(story)}
             key={index}
             className={`relative rounded-lg shadow min-w-30 max-w-30 max-h-40

@@ -17,8 +17,10 @@ const syncUserCreation = inngest.createFunction(
   { event: "clerk/user.created" },
   async ({ event }) => {
     console.log("syncUserCreation triggered with event:", event);
-    const { id, first_name, last_name, email_address, image_url } = event.data;
-    let username = email_address[0].email_address.split("@")[0];
+    const { id, first_name, last_name, email_addresses, image_url } = event.data;
+
+    let username = email_addresses?.[0]?.email_address?.split("@")[0] || `user_${Date.now()}`;
+
 
     // Check availability of username
     const user = await User.findOne({ username });
@@ -146,7 +148,7 @@ const sendNotificationOfUnseenMessage = inngest.createFunction(
     for (const userId in unseenCount){
          const user = await User.findById(userId);
 
-         const subject = 'You have $(unseenCount[userId]} unseen messages';
+         const subject = `You have ${unseenCount[userId]} unseen messages`;
 
         const body =
         `<div style= "font-family: Arial, sans-serif; padding: 20px">
