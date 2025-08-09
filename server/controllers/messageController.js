@@ -1,6 +1,6 @@
 import fs from "fs";
-import imagekit from "../config/imagekit";
-import Message from "../models/Message";
+import imagekit from "../config/imagekit.js";
+import Message from "../models/Message.js";
 import { constants } from "vm";
 
 // Create an empty object to store SS Event connections

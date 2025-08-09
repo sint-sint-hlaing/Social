@@ -15,6 +15,6 @@ userRouter.post('/connect',protect , sendConnectionRequest)
 userRouter.post('/accept',protect , acceptConnectionRequest)
 userRouter.get('/connections',protect , getUserConnections) 
 userRouter.post('/profiles',getUserProfiles)
-userRouter.get('/recent.message', protect, getUserResentMessages)
+userRouter.get('/recent.message', protect, getUserResentMessage)
 
 export default userRouter
