@@ -18,6 +18,7 @@ const Feed = () => {
       setLoading(true)
       const { data} = await api.get('/api/post/feed' , { headers : {
         Authorization : `Bearer ${await getToken() }`
+
       }})
 
       if(data.success){
