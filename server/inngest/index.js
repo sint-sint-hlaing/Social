@@ -16,7 +16,8 @@ const syncUserCreation = inngest.createFunction(
   { id: "sync-user-from-clerk" },
   { event: "clerk/user.created" },
   async ({ event }) => {
-    console.log("syncUserCreation triggered with event:", event);
+    try{
+      console.log("syncUserCreation triggered with event:", event);
     const { id, first_name, last_name, email_addresses, image_url } = event.data;
 
     let username = email_addresses?.[0]?.email_address?.split("@")[0] || `user_${Date.now()}`;
@@ -36,6 +37,9 @@ const syncUserCreation = inngest.createFunction(
       username,
     };
     await User.create(userData);
+    }catch(error){
+        console.error("Error syncing user creation:", error);
+    }
   }
 );
 
@@ -44,10 +48,10 @@ const syncUserUpdation = inngest.createFunction(
   { id: "update-user-from-clerk" },
   { event: "clerk/user.updated" },
   async ({ event }) => {
-    const { id, first_name, last_name, email_address, image_url } = event.data;
+    const { id, first_name, last_name, email_addresses, image_url } = event.data;
 
     const updateUserData = {
-      email: email_address[0].email_address,
+      email: email_addresses[0].email_address,
       full_name: first_name + " " + last_name,
       profile_picture: image_url,
     };

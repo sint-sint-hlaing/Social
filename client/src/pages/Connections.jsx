@@ -77,7 +77,7 @@ const dataArray = [
             Connections
           </h1>
           <p className="text-slate-600">
-            Manage your metwork and disover new connections
+            Manage your network and disover new connections
           </p>
         </div>
 

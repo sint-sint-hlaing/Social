@@ -26,7 +26,7 @@ const UserCard = ({ user }) => {
           </p>
         )}
       </div>
-      <div className='flex items-cemter justify-center gap-2 mt-4 text-xs text-gray-600'>
+      <div className='flex items-center justify-center gap-2 mt-4 text-xs text-gray-600'>
        <div className='flex items-center gap-1 border border-gray-300 rounded-full px-3 py-1'>
           <span>{user.followers.length}</span>Followers
         </div>
@@ -36,12 +36,12 @@ const UserCard = ({ user }) => {
         hover:from-indigo-600 hover:to-purple-700 active:scale-95 transition text-white cursor-pointer'>
           <UserPlus className='w-4 h-4'/> {(currentUser?.following ?? []).includes(user._id) ? 'Following' :'Follow'}
         </button>
-        <button onClick={handleConnectionRequest} className='flex items-center justify-center w-16 border text-slate-500 group rounded-md curspr-pointer active:scale-95 transition'>
+        <button onClick={handleConnectionRequest} className='flex items-center justify-center w-16 border text-slate-500 group rounded-md cursor-pointer active:scale-95 transition'>
           {
             (currentUser?.connections ?? []).includes(user._id) ? 
             <MessageCircle className='w-5 h-5 group-hover:scale-105 transition'/>
             :
-            <Plus className='w-5 h-5 group-hover:scale-105 trasition'/>
+            <Plus className='w-5 h-5 group-hover:scale-105 transition'/>
 
           }
         </button>

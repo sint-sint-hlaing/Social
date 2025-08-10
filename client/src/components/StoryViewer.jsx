@@ -38,7 +38,7 @@ const StoryViewer = ({ viewStory, setViewStory }) => {
       case "image":
         return (
           <img
-            className="max:wfull
+            className="max:w-full
                      max-h-screen object-contain"
             src={viewStory.media_url}
             alt=""
