@@ -11,31 +11,31 @@ import api from "../api/axios";
 const Feed = () => {
   const [feeds, setFeeds] = useState([]);
   const [loading, setLoading] = useState(true);
-  const {getToken } = useAuth()
+  const { getToken } = useAuth();
 
   const fetchFeeds = async () => {
-    try{
-      setLoading(true)
-      const { data} = await api.get('/api/post/feed' , { headers : {
-        Authorization : `Bearer ${await getToken() }`
+    try {
+      setLoading(true);
+      const { data } = await api.get("/api/post/feed", {
+        headers: {
+          Authorization: `Bearer ${await getToken()}`,
+        },
+      });
 
-      }})
-
-      if(data.success){
-        setFeeds(data.posts)
-      }else{
-        toast.error(data.message)
+      if (data.success) {
+        setFeeds(data.posts);
+      } else {
+        toast.error(data.message);
       }
-
-    }catch(error){
-        toast.error(error.message)
+    } catch (error) {
+      toast.error(error.message);
     }
-    setLoading(false)
+    setLoading(false);
   };
 
   useEffect(() => {
     fetchFeeds();
-  },[]);
+  }, []);
 
   return !loading ? (
     <div

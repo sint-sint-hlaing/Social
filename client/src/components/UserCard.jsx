@@ -35,28 +35,28 @@ const UserCard = ({ user }) => {
     }
   };
   const handleConnectionRequest = async () => {
-  if ((currentUser?.connections ?? []).includes(user._id)) {
-    return navigate("/messages/" + user._id);
-  }
-
-  try {
-    const { data } = await api.post(
-      "/api/user/connect",
-      { id: user._id },
-      {
-        headers: { Authorization: `Bearer ${await getToken()}` },
-      }
-    );
-    if (data.success) {
-      toast.success(data.message);
-      dispatch(fetchUser(await getToken()));
-    } else {
-      toast.error(data.message);
+    if ((currentUser?.connections ?? []).includes(user._id)) {
+      return navigate("/messages/" + user._id);
     }
-  } catch (error) {
-    toast.error(error.message);
-  }
-};
+
+    try {
+      const { data } = await api.post(
+        "/api/user/connect",
+        { id: user._id },
+        {
+          headers: { Authorization: `Bearer ${await getToken()}` },
+        }
+      );
+      if (data.success) {
+        toast.success(data.message);
+        dispatch(fetchUser(await getToken()));
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
 
   return (
     <div
@@ -92,9 +92,7 @@ const UserCard = ({ user }) => {
         hover:from-indigo-600 hover:to-purple-700 active:scale-95 transition text-white cursor-pointer"
         >
           <UserPlus className="w-4 h-4" />{" "}
-          {currentUser?.following.includes(user._id)
-            ? "Following"
-            : "Follow"}
+          {currentUser?.following.includes(user._id) ? "Following" : "Follow"}
         </button>
         <button
           onClick={handleConnectionRequest}

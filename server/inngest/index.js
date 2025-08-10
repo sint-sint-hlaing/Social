@@ -16,29 +16,31 @@ const syncUserCreation = inngest.createFunction(
   { id: "sync-user-from-clerk" },
   { event: "clerk/user.created" },
   async ({ event }) => {
-    try{
+    try {
       console.log("syncUserCreation triggered with event:", event);
-    const { id, first_name, last_name, email_addresses, image_url } = event.data;
+      const { id, first_name, last_name, email_addresses, image_url } =
+        event.data;
 
-    let username = email_addresses?.[0]?.email_address?.split("@")[0] || `user_${Date.now()}`;
+      let username =
+        email_addresses?.[0]?.email_address?.split("@")[0] ||
+        `user_${Date.now()}`;
 
+      // Check availability of username
+      const user = await User.findOne({ username });
 
-    // Check availability of username
-    const user = await User.findOne({ username });
-
-    if (user) {
-      username = username + Math.floor(Math.random() * 10000);
-    }
-    const userData = {
-      _id: id,
-      email: email_addresses[0].email_address,
-      full_name: first_name + " " + last_name,
-      profile_picture: image_url,
-      username,
-    };
-    await User.create(userData);
-    }catch(error){
-        console.error("Error syncing user creation:", error);
+      if (user) {
+        username = username + Math.floor(Math.random() * 10000);
+      }
+      const userData = {
+        _id: id,
+        email: email_addresses[0].email_address,
+        full_name: first_name + " " + last_name,
+        profile_picture: image_url,
+        username,
+      };
+      await User.create(userData);
+    } catch (error) {
+      console.error("Error syncing user creation:", error);
     }
   }
 );
@@ -48,7 +50,8 @@ const syncUserUpdation = inngest.createFunction(
   { id: "update-user-from-clerk" },
   { event: "clerk/user.updated" },
   async ({ event }) => {
-    const { id, first_name, last_name, email_addresses, image_url } = event.data;
+    const { id, first_name, last_name, email_addresses, image_url } =
+      event.data;
 
     const updateUserData = {
       email: email_addresses[0].email_address,
@@ -140,37 +143,35 @@ const deleteStory = inngest.createFunction(
   }
 );
 const sendNotificationOfUnseenMessage = inngest.createFunction(
-  {id: "send-unseen-messages-notification"},
-  {cron: "TZ=America/New_York 0 0 * * *"}, // Every Day 9 AM
-  async ({step})=> {
-    const messages = await Message.find({seen:false}).populate('to_user_id');
+  { id: "send-unseen-messages-notification" },
+  { cron: "TZ=America/New_York 0 0 * * *" }, // Every Day 9 AM
+  async ({ step }) => {
+    const messages = await Message.find({ seen: false }).populate("to_user_id");
 
-    messages.map(message=>{
-      unseenCount[message.to_user_id._id]=(unseenCount[message.to_user_id._id] || 0)+1;
-    })
+    messages.map((message) => {
+      unseenCount[message.to_user_id._id] =
+        (unseenCount[message.to_user_id._id] || 0) + 1;
+    });
 
-    for (const userId in unseenCount){
-         const user = await User.findById(userId);
+    for (const userId in unseenCount) {
+      const user = await User.findById(userId);
 
-         const subject = `You have ${unseenCount[userId]} unseen messages`;
+      const subject = `You have ${unseenCount[userId]} unseen messages`;
 
-        const body =
-        `<div style= "font-family: Arial, sans-serif; padding: 20px">
+      const body = `<div style= "font-family: Arial, sans-serif; padding: 20px">
           <h2>Hi ${user.full_name},</h2>
           <p> You have ${unseenCount[userId]} unseen messages</p>
           <p>Click <a href= "${process.env.FRONTEND_URL}/messages" style= "color: #10b981;">here</a> to view theUp - Stay Connected</p>
-        </div>`
-        ;
-        await sendEmail({
-          to: user.email,
-          subject,
-          body
-        })
-      }
-      return {message: "Notification sent."}
+        </div>`;
+      await sendEmail({
+        to: user.email,
+        subject,
+        body,
+      });
     }
-)
-
+    return { message: "Notification sent." };
+  }
+);
 
 // Create an empty array where we'll export future Inngest functions
 export const functions = [
@@ -179,6 +180,5 @@ export const functions = [
   syncUserDeletion,
   sendNewConnectionRequestReminder,
   deleteStory,
-  sendNotificationOfUnseenMessage
-
+  sendNotificationOfUnseenMessage,
 ];

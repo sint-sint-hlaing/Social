@@ -8,19 +8,19 @@ import toast from "react-hot-toast";
 
 const RecentMessages = () => {
   const [messages, setMessages] = useState([]);
-  const {user} = useUser()
-  const { getToken} = useAuth()
+  const { user } = useUser();
+  const { getToken } = useAuth();
 
   const fetchRecentMessages = async () => {
-    try{
-      const token = await getToken()
-      const {data} = await api.get('/api/user/recent-messages' ,{
-        headers : {Authorization : `Bearer ${token}`}
-      })
-      if(data.success){
+    try {
+      const token = await getToken();
+      const { data } = await api.get("/api/user/recent-messages", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (data.success) {
         // Group messages by sender and get the latest message for each sender
         const groupedMessages = data.messages.reduce((acc, message) => {
-          const senderId = message.from_user_id._id; 
+          const senderId = message.from_user_id._id;
           if (
             !acc[senderId] ||
             new Date(message.createdAt) > new Date(acc[senderId].createdAt)
@@ -28,25 +28,28 @@ const RecentMessages = () => {
             acc[senderId] = message;
           }
           return acc;
-        },{})
+        }, {});
 
         // Sort meesages by date
-        const sortedMessages = Object.values(groupedMessages).sort((a,b)=>new Date(b.createdAt) - new Date(a.createdAt))
-        setMessages(sortedMessages)
-      }else{
-        toast.error(data.message)
+        const sortedMessages = Object.values(groupedMessages).sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+        setMessages(sortedMessages);
+      } else {
+        toast.error(data.message);
       }
-    }catch(error){
-        toast.error(error.message)
-
+    } catch (error) {
+      toast.error(error.message);
     }
   };
 
   useEffect(() => {
-    if(user){
-    fetchRecentMessages();
-      setInterval(fetchRecentMessages , 3000)
-      return ()=> {clearInterval()}
+    if (user) {
+      fetchRecentMessages();
+      setInterval(fetchRecentMessages, 3000);
+      return () => {
+        clearInterval();
+      };
     }
   }, [user]);
 
@@ -74,8 +77,14 @@ const RecentMessages = () => {
                 </p>
               </div>
               <div className=" flex justify-between">
-                <p className="text-gray-500">{message.text ? message.text : 'media'}</p>
-                {!message.seen && <p className=" bg-indigo-500 text-white w-4 h-4 flex items-center justify-center rounded-full text-[10px]">1</p>}
+                <p className="text-gray-500">
+                  {message.text ? message.text : "media"}
+                </p>
+                {!message.seen && (
+                  <p className=" bg-indigo-500 text-white w-4 h-4 flex items-center justify-center rounded-full text-[10px]">
+                    1
+                  </p>
+                )}
               </div>
             </div>
           </Link>

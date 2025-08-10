@@ -44,9 +44,9 @@ const ProfileModal = ({ setShowEdit }) => {
 
       dispatch(updateUser({ userData, token }));
 
-      setShowEdit(false)
+      setShowEdit(false);
     } catch (error) {
-      toast.error(error.message)
+      toast.error(error.message);
     }
   };
   return (
@@ -56,9 +56,12 @@ const ProfileModal = ({ setShowEdit }) => {
           <h1 className="text-2xl font-bold text-gray-900 mb-6">
             Edit Profile
           </h1>
-          <form className="space-y-4" onSubmit={e => toast.promise(
-            handleSaveProfile(e) , {loading: 'Saving...'}
-          )}>
+          <form
+            className="space-y-4"
+            onSubmit={(e) =>
+              toast.promise(handleSaveProfile(e), { loading: "Saving..." })
+            }
+          >
             {/* Profile Picture */}
             <div className="flex flex-col items-start gap-3">
               <label

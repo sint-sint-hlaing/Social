@@ -15,7 +15,7 @@ import { useParams } from "react-router-dom";
 
 const ChatBox = () => {
   const { messages } = useSelector((state) => state.messages);
-  console.log(messages)
+  console.log(messages);
   const { userId } = useParams();
   const { getToken } = useAuth();
   const dispatch = useDispatch();

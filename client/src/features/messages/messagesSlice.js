@@ -1,31 +1,30 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import api from '../../api/axios';
-
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import api from "../../api/axios";
 
 const initialState = {
-  messages: []
+  messages: [],
 };
 
 export const fetchMessage = createAsyncThunk(
-  'messages/fetchMessage',
+  "messages/fetchMessage",
   async ({ token, userId }) => {
     const { data } = await api.post(
-      '/api/message/get',
+      "/api/message/get",
       { to_user_id: userId },
       {
         headers: { Authorization: `Bearer ${token}` },
       }
     );
     if (data.success) {
-      return data.messages;  // return only messages array
+      return data.messages; // return only messages array
     } else {
-      throw new Error('Failed to fetch messages');
+      throw new Error("Failed to fetch messages");
     }
   }
 );
 
 const messagesSlice = createSlice({
-  name: 'messages',
+  name: "messages",
   initialState,
   reducers: {
     setMessages: (state, action) => {
@@ -40,10 +39,11 @@ const messagesSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(fetchMessage.fulfilled, (state, action) => {
-      state.messages = action.payload;  // payload is now messages array
+      state.messages = action.payload; // payload is now messages array
     });
   },
 });
 
-export const { setMessages, addMessages, resetMessages } = messagesSlice.actions;
+export const { setMessages, addMessages, resetMessages } =
+  messagesSlice.actions;
 export default messagesSlice.reducer;

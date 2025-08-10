@@ -180,11 +180,11 @@ const StoryModal = ({ setShowModal, fetchStories }) => {
           </label>
         </div>
         <button
-            onClick={async () => {
-    await toast.promise(handleCreateStory(), {
-      loading: "Saving...",
-    });
-  }}
+          onClick={async () => {
+            await toast.promise(handleCreateStory(), {
+              loading: "Saving...",
+            });
+          }}
           className="flex items-center justify-center gap-2 text-white py-3 mt-4 w-full rounded bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 active:scale-95 transition cursor-pointer"
         >
           <Sparkle size={18} /> Create Story
