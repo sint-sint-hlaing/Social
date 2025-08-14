@@ -18,32 +18,41 @@ const syncUserCreation = inngest.createFunction(
   async ({ event }) => {
     try {
       console.log("syncUserCreation triggered with event:", event);
-      const { id, first_name, last_name, email_addresses, image_url } =
-        event.data;
+      const { id, email_addresses, image_url } = event.data;
+      const email = email_addresses?.[0]?.email_address || "";
+
+      // Enforce @ucsmub.edu.mm domain
+      if (!email.toLowerCase().endsWith("@ucsmub.edu.mm")) {
+        console.log(`Blocked signup for email: ${email}`);
+        throw new Error("Only @ucsmub.edu.mm emails are allowed to register.");
+      }
 
       let username =
-        email_addresses?.[0]?.email_address?.split("@")[0] ||
-        `user_${Date.now()}`;
+        email.split("@")[0] || `user_${Date.now()}`;
 
-      // Check availability of username
-      const user = await User.findOne({ username });
-
-      if (user) {
-        username = username + Math.floor(Math.random() * 10000);
+      // Check username availability
+      const existingUser = await User.findOne({ username });
+      if (existingUser) {
+        username += Math.floor(Math.random() * 10000);
       }
+
       const userData = {
         _id: id,
-        email: email_addresses[0].email_address,
-        full_name: first_name + " " + last_name,
+        email,
+        full_name: username,
         profile_picture: image_url,
         username,
       };
+
       await User.create(userData);
     } catch (error) {
       console.error("Error syncing user creation:", error);
+      // Optional: rethrow so Inngest logs it as a failure
+      throw error;
     }
   }
 );
+
 
 // Image function to update user data in database
 const syncUserUpdation = inngest.createFunction(
@@ -128,24 +137,33 @@ const sendNewConnectionRequestReminder = inngest.createFunction(
   }
 );
 
-// Inngest function to delete story after 24 hours
-const deleteStory = inngest.createFunction(
-  { id: "story-delete" },
-  { event: "app/story.delete" },
+
+export const deleteStory = inngest.createFunction(
+  { id: "story-delete" },          // Unique function ID
+  { event: "app/story-delete" },   // Event name must match what you send
   async ({ event, step }) => {
     const { storyId } = event.data;
+
+    // Calculate the exact time 24 hours from now
     const in24Hours = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    // Wait until that time
     await step.sleepUntil("wait-for-24hours", in24Hours);
+
+    // Run deletion logic
     await step.run("delete-story", async () => {
       await Story.findByIdAndDelete(storyId);
       return { message: "Story deleted." };
     });
   }
 );
+
 const sendNotificationOfUnseenMessage = inngest.createFunction(
   { id: "send-unseen-messages-notification" },
   { cron: "TZ=America/New_York 0 0 * * *" }, // Every Day 9 AM
   async ({ step }) => {
+    const unseenCount = {}; // ✅ initialize here
+
     const messages = await Message.find({ seen: false }).populate("to_user_id");
 
     messages.map((message) => {
@@ -158,11 +176,12 @@ const sendNotificationOfUnseenMessage = inngest.createFunction(
 
       const subject = `You have ${unseenCount[userId]} unseen messages`;
 
-      const body = `<div style= "font-family: Arial, sans-serif; padding: 20px">
+      const body = `<div style="font-family: Arial, sans-serif; padding: 20px">
           <h2>Hi ${user.full_name},</h2>
-          <p> You have ${unseenCount[userId]} unseen messages</p>
-          <p>Click <a href= "${process.env.FRONTEND_URL}/messages" style= "color: #10b981;">here</a> to view theUp - Stay Connected</p>
+          <p>You have ${unseenCount[userId]} unseen messages</p>
+          <p>Click <a href="${process.env.FRONTEND_URL}/messages" style="color: #10b981;">here</a> to view theUp - Stay Connected</p>
         </div>`;
+
       await sendEmail({
         to: user.email,
         subject,
@@ -172,6 +191,7 @@ const sendNotificationOfUnseenMessage = inngest.createFunction(
     return { message: "Notification sent." };
   }
 );
+
 
 // Create an empty array where we'll export future Inngest functions
 export const functions = [

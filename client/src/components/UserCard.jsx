@@ -67,7 +67,7 @@ const UserCard = ({ user }) => {
         <img
           src={user.profile_picture}
           alt=""
-          className="rounded-full w-16 shadow-md mx-auto"
+          className="rounded-full w-16 h-16 shadow-md mx-auto"
         />
         <p className=" mt-4 font-semibold">{user.full_name}</p>
         {user.username && (
@@ -88,20 +88,19 @@ const UserCard = ({ user }) => {
         <button
           onClick={handleFollow}
           disabled={currentUser?.following.includes(user._id)}
-          className="w-full py-2 rounded-md flex justify-center items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600
-        hover:from-indigo-600 hover:to-purple-700 active:scale-95 transition text-white cursor-pointer"
+          className="w-full py-2 rounded-md flex justify-center items-center gap-2  bg-orange-100 hover:bg-orange-200 text-orange-800 active:scale-95 transition  cursor-pointer"
         >
-          <UserPlus className="w-4 h-4" />{" "}
+          <UserPlus  className="w-4 h-4 text-orange-800" />
           {currentUser?.following.includes(user._id) ? "Following" : "Follow"}
         </button>
         <button
           onClick={handleConnectionRequest}
-          className="flex items-center justify-center w-16 border text-slate-500 group rounded-md cursor-pointer active:scale-95 transition"
+          className="flex items-center justify-center w-16  bg-slate-100 hover:bg-slate-200 text-black  p rounded-md cursor-pointer active:scale-95 transition"
         >
           {(currentUser?.connections ?? []).includes(user._id) ? (
-            <MessageCircle className="w-5 h-5 group-hover:scale-105 transition" />
+            <MessageCircle className="w-4 h-4 group-hover:scale-105 transition " />
           ) : (
-            <Plus className="w-5 h-5 group-hover:scale-105 transition" />
+            <Plus className="w-4 h-4 group-hover:scale-105 transition" />
           )}
         </button>
       </div>

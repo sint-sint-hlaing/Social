@@ -17,6 +17,7 @@ import { fetchUser } from "./features/user/userSlice";
 import { fetchConnections } from "./features/connections/connectionsSlice";
 import { addMessages } from "./features/messages/messagesSlice";
 import { useRef } from "react";
+import './App.css'
 
 const App = () => {
   const { user } = useUser();

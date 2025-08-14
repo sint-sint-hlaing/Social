@@ -51,13 +51,23 @@ export const getFeedPosts = async (req, res) => {
     const { userId } = req.auth();
     const user = await User.findById(userId);
 
-    //User connections and followings
     const connections = Array.isArray(user.connections) ? user.connections : [];
     const following = Array.isArray(user.following) ? user.following : [];
-
     const userIds = [userId, ...connections, ...following];
 
-    const posts = await Post.find({ user: { $in: userIds } })
+    const { search } = req.query;
+
+    let query = {};
+
+    if (search) {
+      // Search from ALL posts, not just connections/following
+      query.content = { $regex: search, $options: "i" };
+    } else {
+      // Default feed: only from connections/following/self
+      query.user = { $in: userIds };
+    }
+
+    const posts = await Post.find(query)
       .populate("user")
       .sort({ createdAt: -1 });
 
@@ -67,6 +77,34 @@ export const getFeedPosts = async (req, res) => {
     res.json({ success: false, message: error.message });
   }
 };
+
+// Delete Post
+export const deletePost = async (req, res) => {
+  try {
+    const { userId } = req.auth(); // Current logged-in user
+    const { id } = req.params; // Post ID from URL
+
+    const post = await Post.findById(id);
+
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+
+    // Only the post owner can delete
+    if (post.user.toString() !== userId) {
+      return res.status(403).json({ success: false, message: "You can't delete this post" });
+    }
+
+    await Post.findByIdAndDelete(id);
+
+    res.json({ success: true, message: "Post deleted successfully" });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
 // Like Post
 export const likePost = async (req, res) => {
   try {

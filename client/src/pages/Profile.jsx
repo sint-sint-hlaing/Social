@@ -80,7 +80,7 @@ const Profile = () => {
                 key={tab}
                 className={` flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
                   activeTab === tab
-                    ? "bg-indigo-600 text-white"
+                    ? "bg-gray-800 text-white"
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >

@@ -123,6 +123,7 @@ export const followUser = async (req, res) => {
     const { id } = req.body;
 
     const user = await User.findById(userId);
+    const toUser = await User.findById(id);
 
     if (user.following.includes(id)) {
       return res.json({
@@ -130,12 +131,48 @@ export const followUser = async (req, res) => {
         message: "You are already following this user",
       });
     }
+
+    // Add to following/followers
     user.following.push(id);
     await user.save();
 
-    const toUser = await User.findById(id);
     toUser.followers.push(userId);
     await toUser.save();
+
+    // Check if toUser is already following current user (mutual follow)
+    const isMutualFollow = toUser.following.includes(userId);
+
+    if (isMutualFollow) {
+      // Add each other as connections if not already connected
+      if (!user.connections.includes(id)) {
+        user.connections.push(id);
+        await user.save();
+      }
+      if (!toUser.connections.includes(userId)) {
+        toUser.connections.push(userId);
+        await toUser.save();
+      }
+
+      // Also update Connection collection if you use it for connection requests
+      // Upsert a Connection doc with status "accepted"
+      const connection = await Connection.findOne({
+        $or: [
+          { from_user_id: userId, to_user_id: id },
+          { from_user_id: id, to_user_id: userId },
+        ],
+      });
+
+      if (!connection) {
+        await Connection.create({
+          from_user_id: userId,
+          to_user_id: id,
+          status: "accepted",
+        });
+      } else {
+        connection.status = "accepted";
+        await connection.save();
+      }
+    }
 
     res.json({ success: true, message: "Now you are following the user" });
   } catch (error) {
@@ -144,6 +181,8 @@ export const followUser = async (req, res) => {
   }
 };
 
+
+
 // Unfollow User
 export const unfollowUser = async (req, res) => {
   try {
@@ -151,23 +190,41 @@ export const unfollowUser = async (req, res) => {
     const { id } = req.body;
 
     const user = await User.findById(userId);
-
-    user.following = user.following.filter((user) => user !== id);
-    await user.save();
-
     const toUser = await User.findById(id);
-    toUser.followers = toUser.followers.filter((user) => user !== userId);
+
+    if (!user || !toUser) {
+      return res.json({ success: false, message: "User not found" });
+    }
+
+    user.following = user.following.filter((uid) => uid.toString() !== id);
+    toUser.followers = toUser.followers.filter((uid) => uid.toString() !== userId);
+
+    user.connections = user.connections.filter((uid) => uid.toString() !== id);
+    toUser.connections = toUser.connections.filter((uid) => uid.toString() !== userId);
+
+    await user.save();
     await toUser.save();
+
+    // Delete any pending or accepted connection between users
+    await Connection.deleteOne({
+      $or: [
+        { from_user_id: userId, to_user_id: id },
+        { from_user_id: id, to_user_id: userId },
+      ],
+    });
 
     res.json({
       success: true,
-      message: " You are no longer following this user",
+      message: "You are no longer following this user, and connection removed",
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.json({ success: false, message: error.message });
   }
 };
+
+
+
 
 // Send Connection Request
 export const sendConnectionRequest = async (req, res) => {
@@ -275,12 +332,17 @@ export const acceptConnectionRequest = async (req, res) => {
     }
 
     const user = await User.findById(userId);
-    user.connections.push(id);
-    await user.save();
-
     const toUser = await User.findById(id);
-    toUser.connections.push(userId);
-    await toUser.save();
+
+    if (!user.connections.includes(id)) {
+      user.connections.push(id);
+      await user.save();
+    }
+
+    if (!toUser.connections.includes(userId)) {
+      toUser.connections.push(userId);
+      await toUser.save();
+    }
 
     connection.status = "accepted";
     await connection.save();
@@ -292,6 +354,7 @@ export const acceptConnectionRequest = async (req, res) => {
   }
 };
 
+
 // Get User Profile
 export const getUserProfiles = async (req, res) => {
   try {
@@ -302,6 +365,23 @@ export const getUserProfiles = async (req, res) => {
     }
     const posts = await Post.find({ user: profileId }).populate("user");
     res.json({ success: true, profile, posts });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+
+// Get newest 6 users
+export const getNewUsers = async (req, res) => {
+  try {
+    const { userId } = req.auth();
+
+    const users = await User.find({ _id: { $ne: userId } }) // exclude current user
+      .sort({ createdAt: -1 }) // newest first
+      .limit(6);
+
+    res.json({ success: true, users });
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });

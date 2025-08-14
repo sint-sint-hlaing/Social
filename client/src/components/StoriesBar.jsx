@@ -48,10 +48,10 @@ const StoriesBar = () => {
           onClick={() => setShowModal(true)}
           className="rounded-lg shadow-sm min-w-30 max-w-30 max-h-40 aspect-
                 [3/4] cursor-pointer hover:shadow-lg transition-all duration-200
-                border-2 border-dashed border-indigo-300 bg-gradient-to-b from-indigo-50 to-white"
+                border-2 border-dashed border-orange-300 bg-gradient-to-b from-orange-50 to-white"
         >
           <div className="h-full flex flex-col items-center justify-center p-4">
-            <div className="size-10 bg-indigo-500 rounded-full flex items-center justify-center mb-3">
+            <div className="size-10 bg-orange-500 rounded-full flex items-center justify-center mb-3">
               <Plus className="w-5 h-5 text-white" />
             </div>
             <p className="text-sm font-medium text-slate-700 text-center">
@@ -61,43 +61,43 @@ const StoriesBar = () => {
         </div>
         {/* Story Card */}
         {stories?.map((story, index) => (
-          <div
-            onClick={() => setViewStory(story)}
-            key={index}
-            className={`relative rounded-lg shadow min-w-30 max-w-30 max-h-40
-                        cursor-pointer hover:shadow-lg transition-all duration-200 bg-gradient-to-b from-indigo-500
-                        to-purple-600 hover:from-indigo-700 hover:to-purple-800 active:scale-95`}
-          >
-            <img
-              src={story.user.profile_picture}
-              alt=""
-              className="absolute size-8 top-3 left-3 z-10
-                            rounded ring ring-gray-100 shadow"
-            />
-            <p className="absolute top-18 left-3 text-white/60 text-sm truncate max-w-24">
-              {story.content}
-            </p>
-            <p className="text-white absolute bottom-1 right-2 z-10 text-xs">
-              {moment(story.createdAt).fromNow()}
-            </p>
-            {story.media_type !== "text" && (
-              <div className="absolute inset-0 z-1 rounded-lg bg-black overflow-hidden">
-                {story.media_type === "image" ? (
-                  <img
-                    src={story.media_url}
-                    alt=""
-                    className="w-full h-full object-cover hovder:scale-110 transition duration-500 opacity-70 hover:opacity-80 "
-                  />
-                ) : (
-                  <video
-                    src={story.media_url}
-                    className="w-full h-full object-cover hovder:scale-110 transition duration-500 opacity-70 hover:opacity-80 "
-                  />
-                )}
-              </div>
-            )}
-          </div>
-        ))}
+  <div
+    onClick={() => setViewStory(story)}
+    key={index}
+    style={{ backgroundColor: story.background_color }}
+    className="relative rounded-lg shadow min-w-30 max-w-30 max-h-40
+               cursor-pointer hover:shadow-lg transition-all duration-200 active:scale-95"
+  >
+    <img
+      src={story.user.profile_picture}
+      alt=""
+      className="absolute size-8 top-3 left-3 z-10 rounded ring ring-gray-100 shadow"
+    />
+    <p className="absolute top-18 left-3 text-white/60 text-sm truncate max-w-24">
+      {story.content}
+    </p>
+    <p className="text-white absolute bottom-1 right-2 z-10 text-xs">
+      {moment(story.createdAt).fromNow()}
+    </p>
+    {story.media_type !== "text" && (
+      <div className="absolute inset-0 z-1 rounded-lg bg-black overflow-hidden">
+        {story.media_type === "image" ? (
+          <img
+            src={story.media_url}
+            alt=""
+            className="w-full h-full object-cover hovder:scale-110 transition duration-500 opacity-70 hover:opacity-80 "
+          />
+        ) : (
+          <video
+            src={story.media_url}
+            className="w-full h-full object-cover hovder:scale-110 transition duration-500 opacity-70 hover:opacity-80 "
+          />
+        )}
+      </div>
+    )}
+  </div>
+))}
+
       </div>
       {showModal && (
         <StoryModal setShowModal={setShowModal} fetchStories={fetchStories} />

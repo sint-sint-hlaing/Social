@@ -12,7 +12,6 @@ export const addUserStory = async (req, res) => {
     const media = req.file;
     let media_url = ``;
 
-    // upload media to imagekit
     if (media_type === "image" || media_type === "video") {
       const fileBuffer = fs.readFileSync(media.path);
       const response = await imagekit.upload({
@@ -21,7 +20,7 @@ export const addUserStory = async (req, res) => {
       });
       media_url = response.url;
     }
-    // Create a story
+
     const story = await Story.create({
       user: userId,
       content,
@@ -30,7 +29,7 @@ export const addUserStory = async (req, res) => {
       background_color,
     });
 
-    // Schedule story deleteion after 24 hours
+    // Schedule deletion event
     await inngest.send({
       name: "app/story-delete",
       data: { storyId: story._id },
@@ -43,27 +42,33 @@ export const addUserStory = async (req, res) => {
   }
 };
 
-// Get User Story
+// Get Stories (unchanged)
 export const getStories = async (req, res) => {
   try {
     const { userId } = req.auth();
     const user = await User.findById(userId);
 
-    // User connection and followings
     const userIds = [
       userId,
       ...(Array.isArray(user.connections) ? user.connections : []),
       ...(Array.isArray(user.following) ? user.following : []),
     ];
 
+    // Calculate time 24 hours ago
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
     const stories = await Story.find({
       user: { $in: userIds },
+      createdAt: { $gte: twentyFourHoursAgo },  // Only stories created within last 24h
     })
       .populate("user")
       .sort({ createdAt: -1 });
+
     res.json({ success: true, stories });
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });
   }
 };
+
+
