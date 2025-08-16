@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { SendHorizonal, X } from "lucide-react";
 import api from "../api/axios";
 import { useSelector } from "react-redux";
 import { useAuth } from "@clerk/clerk-react";
@@ -110,9 +110,9 @@ const CommentModal = ({ isOpen, onClose, postId, onCommentAdded }) => {
           />
           <button
             onClick={handleAddComment}
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-sm"
+            className="bg-orange-500 hover:bg-orange-600 active:scale-95 cursor-pointer text-white p-2 rounded-full  text-sm"
           >
-            Post
+             <SendHorizonal size={18} />
           </button>
         </div>
       </div>
