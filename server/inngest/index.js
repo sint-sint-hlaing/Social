@@ -27,8 +27,7 @@ const syncUserCreation = inngest.createFunction(
         throw new Error("Only @ucsmub.edu.mm emails are allowed to register.");
       }
 
-      let username =
-        email.split("@")[0] || `user_${Date.now()}`;
+      let username = email.split("@")[0] || `user_${Date.now()}`;
 
       // Check username availability
       const existingUser = await User.findOne({ username });
@@ -53,7 +52,6 @@ const syncUserCreation = inngest.createFunction(
   }
 );
 
-
 // Image function to update user data in database
 const syncUserUpdation = inngest.createFunction(
   { id: "update-user-from-clerk" },
@@ -77,9 +75,18 @@ const syncUserDeletion = inngest.createFunction(
   { event: "clerk/user.deleted" },
   async ({ event }) => {
     const { id } = event.data;
+
+    // Delete all posts by the user
+    await Post.deleteMany({ user: id });
+
+    // Delete all stories by the user
+    await Story.deleteMany({ user: id });
+
+    // Finally, delete the user
     await User.findByIdAndDelete(id);
   }
 );
+
 
 // Inngest function to send Reminder when a new connection request is added
 const sendNewConnectionRequestReminder = inngest.createFunction(
@@ -137,10 +144,9 @@ const sendNewConnectionRequestReminder = inngest.createFunction(
   }
 );
 
-
 export const deleteStory = inngest.createFunction(
-  { id: "story-delete" },          // Unique function ID
-  { event: "app/story-delete" },   // Event name must match what you send
+  { id: "story-delete" }, // Unique function ID
+  { event: "app/story-delete" }, // Event name must match what you send
   async ({ event, step }) => {
     const { storyId } = event.data;
 
@@ -191,7 +197,6 @@ const sendNotificationOfUnseenMessage = inngest.createFunction(
     return { message: "Notification sent." };
   }
 );
-
 
 // Create an empty array where we'll export future Inngest functions
 export const functions = [
