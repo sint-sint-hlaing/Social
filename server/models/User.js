@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
-import Post from "./Post.js"; // your Post model
-import Story from "./Story.js"; // your Story model (if any)
+import Post from "./Post.js";
+import Story from "./Story.js";
 
 const userSchema = new mongoose.Schema(
   {
@@ -20,17 +20,15 @@ const userSchema = new mongoose.Schema(
   { timestamps: true, minimize: false }
 );
 
-// Pre-remove hook to delete posts and stories
-userSchema.pre("deleteOne", { document: true, query: false }, async function (next) {
+// Hook for query-based deletes (findOneAndDelete / findByIdAndDelete)
+userSchema.pre("findOneAndDelete", async function (next) {
   try {
-    const userId = this._id;
-
-    // Delete user's posts
-    await Post.deleteMany({ user: userId });
-
-    // Delete user's stories
-    await Story.deleteMany({ user: userId });
-
+    const doc = await this.model.findOne(this.getFilter());
+    if (doc) {
+      const userId = doc._id;
+      await Post.deleteMany({ user: userId });
+      await Story.deleteMany({ user: userId });
+    }
     next();
   } catch (error) {
     next(error);

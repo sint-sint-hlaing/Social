@@ -70,19 +70,17 @@ const syncUserUpdation = inngest.createFunction(
 );
 
 // Image function to delete user data from database
-const syncUserDeletion = inngest.createFunction(
+export const syncUserDeletion = inngest.createFunction(
   { id: "delete-user-from-clerk" },
   { event: "clerk/user.deleted" },
   async ({ event }) => {
     const { id } = event.data;
 
-    // Delete all posts by the user
+    // Delete all posts and stories
     await Post.deleteMany({ user: id });
-
-    // Delete all stories by the user
     await Story.deleteMany({ user: id });
 
-    // Finally, delete the user
+    // Delete the user
     await User.findByIdAndDelete(id);
   }
 );
