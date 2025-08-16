@@ -4,8 +4,6 @@ import {
   Heart,
   MessageCircle,
   Share2,
-  MoreHorizontal,
-  Trash2,
   MoreVertical,
 } from "lucide-react";
 import moment from "moment";
@@ -14,6 +12,7 @@ import { useSelector } from "react-redux";
 import { useAuth } from "@clerk/clerk-react";
 import api from "../api/axios";
 import toast from "react-hot-toast";
+import CommentModal from "./CommentModal";
 
 const PostCard = ({ post, onDelete }) => {
   const postWithHashtages = post.content?.replace(
@@ -24,6 +23,8 @@ const PostCard = ({ post, onDelete }) => {
   const [likes, setLikes] = useState(post.likes_count);
   const [menuOpen, setMenuOpen] = useState(false); // For three-dot menu
   const currentUser = useSelector((state) => state.user.value);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [commentCount, setCommentCount] = useState(post.comments?.length || 0);
 
   const { getToken } = useAuth();
   const navigate = useNavigate();
@@ -117,7 +118,7 @@ const PostCard = ({ post, onDelete }) => {
                   onClick={handleDelete}
                   className=" cursor-pointer flex items-center gap-2 px-4 py-2 text-red-500 hover:bg-gray-100 w-full"
                 >
-                  Delete 
+                  Delete
                 </button>
               </div>
             )}
@@ -159,14 +160,24 @@ const PostCard = ({ post, onDelete }) => {
           <span>{likes.length}</span>
         </div>
         <div className="flex items-center gap-1">
-          <MessageCircle className="w-4 h-4" />
-          <span>{12}</span>
+          <MessageCircle
+            className=" w-4 h-4 cursor-pointer"
+            onClick={() => setIsModalOpen(true)}
+          />
+          <span>{commentCount}</span>
         </div>
         <div className="flex items-center gap-1">
           <Share2 className="w-4 h-4" />
           <span>{7}</span>
         </div>
       </div>
+      {/* Modal */}
+      <CommentModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        postId={post._id}
+        onCommentAdded={() => setCommentCount((prev) => prev + 1)}
+      />
     </div>
   );
 };
