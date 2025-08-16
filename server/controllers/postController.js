@@ -2,6 +2,7 @@ import fs from "fs";
 import imagekit from "../config/imagekit.js";
 import Post from "../models/Post.js";
 import User from "../models/User.js";
+import Comment from "../models/Comment.js";
 
 // Add Post
 export const addPost = async (req, res) => {
@@ -95,9 +96,13 @@ export const deletePost = async (req, res) => {
       return res.status(403).json({ success: false, message: "You can't delete this post" });
     }
 
+    // Delete all comments associated with this post
+    await Comment.deleteMany({ post: post._id });
+
+    // Delete the post itself
     await Post.findByIdAndDelete(id);
 
-    res.json({ success: true, message: "Post deleted successfully" });
+    res.json({ success: true, message: "Post and its comments deleted successfully" });
   } catch (error) {
     console.log(error);
     res.status(500).json({ success: false, message: error.message });
@@ -112,7 +117,6 @@ export const likePost = async (req, res) => {
     const { postId } = req.body;
 
     const post = await Post.findById(postId);
-
     if (post.likes_count.includes(userId)) {
       post.likes_count = post.likes_count.filter((user) => user !== userId);
       await post.save();
