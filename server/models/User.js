@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema(
     profile_picture: { type: String, default: "" },
     cover_photo: { type: String, default: "" },
     location: { type: String, default: "" },
+    year: { type: String, default: "" }, // ✅ new field
     followers: [{ type: String, ref: "User", default: [] }],
     following: [{ type: String, ref: "User", default: [] }],
     connections: [{ type: String, ref: "User", default: [] }],

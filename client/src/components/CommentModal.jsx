@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { SendHorizonal, X } from "lucide-react";
+import { SendHorizonal, X, Trash2 } from "lucide-react";
 import api from "../api/axios";
 import { useSelector } from "react-redux";
 import { useAuth } from "@clerk/clerk-react";
 import toast from "react-hot-toast";
+import moment from "moment";
 
-const CommentModal = ({ isOpen, onClose, postId, onCommentAdded }) => {
+const CommentModal = ({
+  isOpen,
+  onClose,
+  postId,
+  onCommentAdded,
+  onCommentDeleted,
+}) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
 
@@ -34,24 +41,43 @@ const CommentModal = ({ isOpen, onClose, postId, onCommentAdded }) => {
 
   // Add new comment
   const handleAddComment = async () => {
-    if (!newComment.trim()) return;
+  if (!newComment.trim()) return;
 
+  try {
+    const token = await getToken();
+    const { data } = await api.post(
+      "/api/comments",
+      { post: postId, user: user, text: newComment },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    // Prepend new comment to show first
+    setComments((prev) => [data, ...prev]);
+    setNewComment("");
+
+    if (onCommentAdded) onCommentAdded();
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to add comment.");
+  }
+};
+
+
+  // Delete comment
+  const handleDeleteComment = async (commentId) => {
     try {
       const token = await getToken();
-      const { data } = await api.post(
-        "/api/comments",
-        { post: postId, user: user, text: newComment },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.delete(`/api/comments/${commentId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      setComments((prev) => [...prev, data]);
-      setNewComment("");
+      setComments((prev) => prev.filter((c) => c._id !== commentId));
+      toast.success("Comment deleted");
 
-      // Notify PostCard to update comment count
-      if (onCommentAdded) onCommentAdded();
+      if (onCommentDeleted) onCommentDeleted(); // <-- notify parent
     } catch (err) {
       console.error(err);
-      toast.error("Failed to add comment.");
+      toast.error("Failed to delete comment.");
     }
   };
 
@@ -75,18 +101,33 @@ const CommentModal = ({ isOpen, onClose, postId, onCommentAdded }) => {
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {comments.length > 0 ? (
             comments.map((c) => (
-              <div key={c._id} className="flex items-start gap-3">
-                <img
-                  src={
-                    c.user?.profile_picture || "https://i.pravatar.cc/40?img=5"
-                  }
-                  alt={c.user?.full_name}
-                  className="w-8 h-8 rounded-full object-cover"
-                />
-                <div className="bg-gray-100 rounded-lg px-3 py-2 max-w-[80%]">
-                  <p className="text-sm font-medium">{c.user?.full_name}</p>
-                  <p className="text-sm text-gray-700">{c.text}</p>
+              <div className="flex justify-between items-start gap-3">
+                <div className="flex items-start gap-3">
+                  <img
+                    src={
+                      c.user?.profile_picture ||
+                      "https://i.pravatar.cc/40?img=5"
+                    }
+                    alt={c.user?.full_name}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                  <div className="bg-gray-100 rounded-lg px-3 py-2 max-w-[80%]">
+                    <p className="text-sm font-medium">{c.user?.full_name}</p>
+                    <p className="text-sm text-gray-700">{c.text}</p>
+                     <p className="text-xs text-gray-400 mt-1">
+                      {moment(c.createdAt).fromNow()}
+                    </p>
+                  </div>
                 </div>
+                {c.user?._id === user?._id && (
+                  <button
+                    onClick={() => handleDeleteComment(c._id)}
+                    className="p-1 hover:bg-red-100 rounded-full text-red-500"
+                    title="Delete comment"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
               </div>
             ))
           ) : (
@@ -110,9 +151,9 @@ const CommentModal = ({ isOpen, onClose, postId, onCommentAdded }) => {
           />
           <button
             onClick={handleAddComment}
-            className="bg-orange-500 hover:bg-orange-600 active:scale-95 cursor-pointer text-white p-2 rounded-full  text-sm"
+            className="bg-orange-500 hover:bg-orange-600 active:scale-95 cursor-pointer text-white p-2 rounded-full text-sm"
           >
-             <SendHorizonal size={18} />
+            <SendHorizonal size={18} />
           </button>
         </div>
       </div>

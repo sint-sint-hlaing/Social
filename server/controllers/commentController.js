@@ -43,11 +43,43 @@ export const getComments = async (req, res) => {
 
   try {
     const comments = await Comment.find({ post: postId }).sort({
-      createdAt: 1,
+      createdAt: -1,
     });
+    
     res.json(comments);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to fetch comments" });
+  }
+};
+
+export const deleteComment = async (req, res) => {
+  try {
+    const { userId } = req.auth(); // from Clerk or JWT
+    const { commentId } = req.params;
+
+    // Find the comment
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      return res.status(404).json({ success: false, message: "Comment not found" });
+    }
+
+    // Only the owner of the comment (or admin if you implement roles) can delete
+    if (comment.user._id.toString() !== userId) {
+      return res.status(403).json({ success: false, message: "Not authorized to delete this comment" });
+    }
+
+    // Remove comment reference from Post
+    await Post.findByIdAndUpdate(comment.post, {
+      $pull: { comments: comment._id },
+    });
+
+    // Delete the comment
+    await comment.deleteOne();
+
+    res.json({ success: true, message: "Comment deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };

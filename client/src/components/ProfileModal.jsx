@@ -31,12 +31,14 @@ const ProfileModal = ({ setShowEdit }) => {
         location,
         profile_picture,
         cover_photo,
+        year
       } = editForm;
 
       userData.append("username", username);
       userData.append("bio", bio);
       userData.append("location", location);
       userData.append("full_name", full_name);
+      userData.append("year", year);
       profile_picture && userData.append("profile", profile_picture);
       cover_photo && userData.append("cover", cover_photo);
 
@@ -170,6 +172,30 @@ const ProfileModal = ({ setShowEdit }) => {
                 value={editForm.bio}
               />
             </div>
+               {/* Year Field */}
+            <div className="">
+              <label
+                htmlFor="year"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Year
+              </label>
+              <select
+                id="year"
+                className="w-full p-3 border border-gray-200 rounded-lg"
+                value={editForm.year}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, year: e.target.value })
+                }
+              >
+                <option value="">Select your year</option>
+                <option value="First Year">First Year</option>
+                <option value="Second Year">Second Year</option>
+                <option value="Third Year">Third Year</option>
+                <option value="Fourth Year">Fourth Year</option>
+                <option value="Fifth Year">Fifth Year</option>
+              </select>
+            </div>
             <div className="">
               <label
                 htmlFor=""
@@ -187,6 +213,7 @@ const ProfileModal = ({ setShowEdit }) => {
                 value={editForm.location}
               />
             </div>
+          
 
             <div className=" flex justify-end space-x-3 pt-6">
               <button

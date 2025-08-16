@@ -25,7 +25,7 @@ export const getUserData = async (req, res) => {
 export const updateUserData = async (req, res) => {
   try {
     const { userId } = req.auth();
-    let { username, bio, location, full_name } = req.body;
+    let { username, bio, location, full_name , year} = req.body;
 
     const tempUser = await User.findById(userId);
 
@@ -44,6 +44,7 @@ export const updateUserData = async (req, res) => {
       bio,
       location,
       full_name,
+      year
     };
 
     const profile = req.files.profile && req.files.profile[0];

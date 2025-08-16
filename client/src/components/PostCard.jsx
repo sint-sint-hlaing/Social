@@ -177,6 +177,7 @@ const PostCard = ({ post, onDelete }) => {
         onClose={() => setIsModalOpen(false)}
         postId={post._id}
         onCommentAdded={() => setCommentCount((prev) => prev + 1)}
+         onCommentDeleted={() => setCommentCount((prev) => prev - 1)} 
       />
     </div>
   );
