@@ -77,14 +77,28 @@ export const syncUserDeletion = inngest.createFunction(
   async ({ event }) => {
     const { id } = event.data;
 
-    // Delete all posts and stories
-    await Post.deleteMany({ user: id });
-    await Story.deleteMany({ user: id });
+    try {
+      // Delete all posts
+      if (Post) {
+        await Post.deleteMany({ user: id });
+      }
 
-    // Delete the user
-    await User.findByIdAndDelete(id);
+      // Delete all stories
+      if (Story) {
+        await Story.deleteMany({ user: id });
+      }
+
+      // Delete user
+      await User.findByIdAndDelete(id);
+
+      console.log(`User ${id} and related posts/stories deleted`);
+    } catch (error) {
+      console.error("Error deleting user data:", error);
+      throw error;
+    }
   }
 );
+
 
 
 // Inngest function to send Reminder when a new connection request is added
