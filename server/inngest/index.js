@@ -23,10 +23,10 @@ const syncUserCreation = inngest.createFunction(
       const email = email_addresses?.[0]?.email_address || "";
 
       // Enforce @ucsmub.edu.mm domain
-      if (!email.toLowerCase().endsWith("@ucsmub.edu.mm")) {
-        console.log(`Blocked signup for email: ${email}`);
-        throw new Error("Only @ucsmub.edu.mm emails are allowed to register.");
-      }
+      // if (!email.toLowerCase().endsWith("@ucsmub.edu.mm")) {
+      //   console.log(`Blocked signup for email: ${email}`);
+      //   throw new Error("Only @ucsmub.edu.mm emails are allowed to register.");
+      // }
 
       let username = email.split("@")[0] || `user_${Date.now()}`;
 
