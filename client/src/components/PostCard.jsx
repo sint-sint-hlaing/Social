@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   BadgeCheck,
   Heart,
@@ -14,21 +14,20 @@ import api from "../api/axios";
 import toast from "react-hot-toast";
 import CommentModal from "./CommentModal";
 
-const PostCard = ({ post, onDelete ,onToggleSaved  }) => {
+const PostCard = ({ post, onDelete, onToggleSaved }) => {
   const [likes, setLikes] = useState(post.likes_count);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [commentCount, setCommentCount] = useState(post.comments?.length || 0);
   const [saved, setSaved] = useState(post.savedByCurrentUser || false);
+  const [confirmDeleteModal, setConfirmDeleteModal] = useState(false);
 
   const { getToken } = useAuth();
   const currentUser = useSelector((state) => state.user.value);
   const navigate = useNavigate();
-
   const user = post.user;
 
-  // Handle Save / Unsave
-   const handleSave = async () => {
+  const handleSave = async () => {
     try {
       const token = await getToken();
       const { data } = await api.post(
@@ -39,8 +38,6 @@ const PostCard = ({ post, onDelete ,onToggleSaved  }) => {
       if (data.success) {
         setSaved(data.saved);
         toast.success(data.message);
-
-        // Notify parent
         if (onToggleSaved) onToggleSaved(post._id, data.saved);
       } else {
         toast.error(data.message);
@@ -50,7 +47,6 @@ const PostCard = ({ post, onDelete ,onToggleSaved  }) => {
     }
   };
 
-  // Handle Like / Unlike
   const handleLike = async () => {
     try {
       const { data } = await api.post(
@@ -72,13 +68,13 @@ const PostCard = ({ post, onDelete ,onToggleSaved  }) => {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete this post?")) return;
     try {
       const { data } = await api.delete(`/api/post/${post._id}`, {
         headers: { Authorization: `Bearer ${await getToken()}` },
       });
       if (data.success && onDelete) onDelete(post._id);
       toast.success(data.message);
+      setConfirmDeleteModal(false);
     } catch (error) {
       toast.error(error.message);
     }
@@ -113,7 +109,7 @@ const PostCard = ({ post, onDelete ,onToggleSaved  }) => {
           </div>
         </div>
 
-        {/* Three-dot menu */}
+        {/* Menu */}
         {currentUser._id === user._id && (
           <div className="relative">
             <MoreVertical
@@ -121,10 +117,11 @@ const PostCard = ({ post, onDelete ,onToggleSaved  }) => {
               onClick={() => setMenuOpen((prev) => !prev)}
             />
             {menuOpen && (
-              <div className="absolute right-0 bg-gray-100 rounded shadow-md z-10">
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-10">
+                {/* Delete button always visible */}
                 <button
-                  onClick={handleDelete}
-                  className="flex items-center gap-2 px-4 py-2 text-red-500 hover:bg-gray-100 w-full"
+                  onClick={() => setConfirmDeleteModal(true)}
+                  className="flex items-center justify-center gap-2 px-4 py-2 text-red-600 font-medium rounded-lg hover:bg-red-50 active:bg-red-100 transition-colors duration-150 w-full"
                 >
                   Delete
                 </button>
@@ -185,7 +182,7 @@ const PostCard = ({ post, onDelete ,onToggleSaved  }) => {
         </button>
       </div>
 
-      {/* Modal */}
+      {/* Comment Modal */}
       <CommentModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -193,6 +190,40 @@ const PostCard = ({ post, onDelete ,onToggleSaved  }) => {
         onCommentAdded={() => setCommentCount((prev) => prev + 1)}
         onCommentDeleted={() => setCommentCount((prev) => prev - 1)}
       />
+
+      {/* Confirm Delete Modal */}
+      {confirmDeleteModal && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50  z-90"
+            onClick={() => setConfirmDeleteModal(false)}
+          />
+
+          {/* Centered Modal */}
+          <div className="fixed inset-0 flex items-center justify-center z-100">
+            <div className="bg-white rounded-xl shadow-lg p-6 w-80">
+              <h3 className="text-lg font-medium text-gray-800 mb-4">
+                Are you sure you want to delete this post?
+              </h3>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={handleDelete}
+                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                >
+                  Yes
+                </button>
+                <button
+                  onClick={() => setConfirmDeleteModal(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+                >
+                  No
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
