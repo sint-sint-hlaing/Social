@@ -8,7 +8,7 @@ import RecentMessages from "../components/RecentMessages";
 import { useAuth } from "@clerk/clerk-react";
 import toast from "react-hot-toast";
 import api from "../api/axios";
-import { Search } from "lucide-react";
+import { BookOpen, Search } from "lucide-react";
 
 const Feed = () => {
   const [feeds, setFeeds] = useState([]);
@@ -132,8 +132,9 @@ const Feed = () => {
 
       <div className="max-xl:hidden sticky top-0">
         <div className="bg-white rounded-2xl shadow-md p-4 flex flex-col gap-4 w-64">
-          <h3 className="text-lg font-semibold text-gray-800">
-            📚 Recommended Resources
+          <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-gray-700" />
+            Recommended Resources
           </h3>
 
           {/* Resource Item */}

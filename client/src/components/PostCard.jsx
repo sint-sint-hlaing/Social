@@ -235,7 +235,10 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
                   Yes
                 </button>
                 <button
-                  onClick={() => setConfirmDeleteModal(false)}
+                  onClick={() => {
+                    setConfirmDeleteModal(false); // close modal
+                    setMenuOpen(false); // also close menu
+                  }}
                   className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
                 >
                   No
