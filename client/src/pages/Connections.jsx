@@ -32,8 +32,6 @@ const Connections = () => {
 
   const [followedIds, setFollowedIds] = useState(new Set());
 
-
-
   const handleUnfollow = async (userId) => {
     try {
       const token = await getToken();
@@ -78,36 +76,34 @@ const Connections = () => {
     }
   };
 
- const handleFollow = async (userId) => {
-  try {
-    const token = await getToken();
-    const { data } = await api.post(
-      "/api/user/follow",
-      { id: userId },
-      {
-        headers: { Authorization: `Bearer ${token}` },
+  const handleFollow = async (userId) => {
+    try {
+      const token = await getToken();
+      const { data } = await api.post(
+        "/api/user/follow",
+        { id: userId },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (data.success) {
+        toast.success(data.message);
+        // Update followedIds immediately
+        setFollowedIds((prev) => new Set(prev).add(userId));
+        dispatch(fetchConnections(token)); // refresh from backend too
+      } else {
+        toast.error(data.message);
       }
-    );
-    if (data.success) {
-      toast.success(data.message);
-      // Update followedIds immediately
-      setFollowedIds(prev => new Set(prev).add(userId));
-      dispatch(fetchConnections(token)); // refresh from backend too
-    } else {
-      toast.error(data.message);
+    } catch (error) {
+      toast.error(error.message);
     }
-  } catch (error) {
-    toast.error(error.message);
-  }
-};
-
+  };
 
   useEffect(() => {
     getToken().then((token) => {
       dispatch(fetchConnections(token));
     });
-  setFollowedIds(new Set(following.map(user => user._id)));
-
+    setFollowedIds(new Set(following.map((user) => user._id)));
   }, [following]);
 
   return (
@@ -184,16 +180,16 @@ const Connections = () => {
 
                     {currentTab === "Followers" && (
                       <button
-    onClick={() => handleFollow(user._id)}
-    className={`w-full p-2 text-sm rounded active:scale-95 transition cursor-pointer ${
-      followedIds.has(user._id)
-        ? "bg-green-200 text-green-900 cursor-default"
-        : "bg-green-100 hover:bg-green-200 text-green-700"
-    }`}
-    disabled={followedIds.has(user._id)}
-  >
-    {followedIds.has(user._id) ? "Following" : "Follow"}
-  </button>
+                        onClick={() => handleFollow(user._id)}
+                        className={`w-full p-2 text-sm rounded active:scale-95 transition cursor-pointer ${
+                          followedIds.has(user._id)
+                            ? "bg-green-200 text-green-900 cursor-default"
+                            : "bg-green-100 hover:bg-green-200 text-green-700"
+                        }`}
+                        disabled={followedIds.has(user._id)}
+                      >
+                        {followedIds.has(user._id) ? "Following" : "Follow"}
+                      </button>
                     )}
 
                     {currentTab === "Following" && (
@@ -216,7 +212,7 @@ const Connections = () => {
 
                     {currentTab === "Connections" && (
                       <button
-                        onClick={() => navigate(`/message/${user._id}`)}
+                        onClick={() => navigate(`/messages/${user._id}`)}
                         className="w-full p-2 text-sm rounded bg-slate-100 hover:bg-slate-200 text-slate-800 active:scale-95 transition cursor-pointer flex items-center justify-center gap-1"
                       >
                         <MessageSquare className="w-4 h-4" />

@@ -14,7 +14,7 @@ import api from "../api/axios";
 import toast from "react-hot-toast";
 import CommentModal from "./CommentModal";
 
-const PostCard = ({ post, onDelete, onToggleSaved }) => {
+const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
   const [likes, setLikes] = useState(post.likes_count);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -26,6 +26,28 @@ const PostCard = ({ post, onDelete, onToggleSaved }) => {
   const currentUser = useSelector((state) => state.user.value);
   const navigate = useNavigate();
   const user = post.user;
+
+  const renderContentWithHashtags = (text) => {
+    const parts = text.split(/(\#[a-zA-Z0-9_]+)/g); // split hashtags
+    return parts.map((part, idx) => {
+      if (part.startsWith("#")) {
+        return (
+          <span
+            key={idx}
+            className="text-blue-500 cursor-pointer hover:underline"
+            onClick={() => onClickHashtag && onClickHashtag(part)}
+          >
+            {part}
+          </span>
+        );
+      }
+      return (
+        <span key={idx} key={idx}>
+          {part}
+        </span>
+      );
+    });
+  };
 
   const handleSave = async () => {
     try {
@@ -133,10 +155,9 @@ const PostCard = ({ post, onDelete, onToggleSaved }) => {
 
       {/* Content */}
       {post.content && (
-        <div
-          className="text-gray-800 text-sm whitespace-pre-line"
-          dangerouslySetInnerHTML={{ __html: postWithHashtags }}
-        />
+        <div className="text-gray-800 text-sm whitespace-pre-line">
+          {renderContentWithHashtags(post.content)}
+        </div>
       )}
 
       {/* Images */}

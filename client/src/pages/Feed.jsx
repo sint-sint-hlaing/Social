@@ -19,6 +19,14 @@ const Feed = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlSearch = searchParams.get("search") || "";
 
+  useEffect(() => {
+    // whenever URL search changes, update input value
+    setSearchTerm(urlSearch || "");
+
+    if (urlSearch) fetchFeeds(urlSearch);
+    else fetchFeeds();
+  }, [urlSearch]);
+
   // Fetch user saved posts
   const fetchUserSavedPosts = async () => {
     try {
@@ -61,22 +69,10 @@ const Feed = () => {
     setLoading(false);
   };
 
-  useEffect(() => {
-    if (urlSearch) fetchFeeds(urlSearch); // fetch posts based on URL
-    else fetchFeeds(); // fetch all posts if no search
-  }, [urlSearch]);
-
   const handleSearchClick = () => {
     if (!searchTerm) return;
-
-    // Update URL
-    setSearchParams({ search: searchTerm });
-
-    // Fetch posts
-    fetchFeeds(searchTerm);
-
-    // Clear input immediately
-    setSearchTerm("");
+    setSearchParams({ search: searchTerm }); // update URL
+    fetchFeeds(searchTerm); // fetch posts
   };
 
   if (loading) return <Loading />;
@@ -113,7 +109,6 @@ const Feed = () => {
                   setFeeds((prev) => prev.filter((p) => p._id !== deletedId))
                 }
                 onToggleSaved={(postId, isSaved) => {
-                  // Update the feeds state immediately when saving/unsaving
                   setFeeds((prev) =>
                     prev.map((p) =>
                       p._id === postId
@@ -121,6 +116,11 @@ const Feed = () => {
                         : p
                     )
                   );
+                }}
+                onClickHashtag={(hashtag) => {
+                  setSearchTerm(hashtag); // put hashtag into input
+                  setSearchParams({ search: hashtag }); // update URL
+                  fetchFeeds(hashtag); // trigger search
                 }}
               />
             ))
@@ -131,19 +131,57 @@ const Feed = () => {
       </div>
 
       <div className="max-xl:hidden sticky top-0">
-        <div className="max-w-xs bg-white text-xs p-4 rounded-md inline-flex flex-col gap-2 shadow">
-          <h3 className="text-slate-800 font-semibold">Sponsered</h3>
-          <img
-            src={assets.sponsored_img}
-            className="w-75 h-50 rounded-md"
-            alt=""
-          />
-          <p className="text-slate-600">Email marketing</p>
-          <p>
-            Supercharge your marketing with a powerful, easy-to-use platform
-            built for results.
-          </p>
+        <div className="bg-white rounded-2xl shadow-md p-4 flex flex-col gap-4 w-64">
+          <h3 className="text-lg font-semibold text-gray-800">
+            📚 Recommended Resources
+          </h3>
+
+          {/* Resource Item */}
+          {[
+            {
+              title: "Python Data Structures",
+              type: "PDF",
+              author: "Dr. Emily Wang",
+              link: "#",
+            },
+            {
+              title: "React Hooks Tutorial",
+              type: "Video",
+              author: "CS101 Instructor",
+              link: "#",
+            },
+            {
+              title: "Algorithm Practice Questions",
+              type: "Article",
+              author: "Alice Doe",
+              link: "#",
+            },
+          ].map((resource, idx) => (
+            <a
+              key={idx}
+              href={resource.link}
+              className="flex flex-col p-3 bg-gray-50 hover:bg-gray-100 rounded-lg shadow-sm transition-colors"
+            >
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-sm font-medium text-gray-700">
+                  {resource.title}
+                </span>
+                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                  {resource.type}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500">by {resource.author}</p>
+            </a>
+          ))}
+
+          <a
+            href="/resources"
+            className="mt-2 text-sm text-blue-500 hover:underline font-medium"
+          >
+            See all resources →
+          </a>
         </div>
+
         <RecentMessages />
       </div>
     </div>
