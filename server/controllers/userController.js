@@ -25,7 +25,7 @@ export const getUserData = async (req, res) => {
 export const updateUserData = async (req, res) => {
   try {
     const { userId } = req.auth();
-    let { username, bio, location, full_name , year} = req.body;
+    let { username, bio, location, full_name, year } = req.body;
 
     const tempUser = await User.findById(userId);
 
@@ -44,7 +44,7 @@ export const updateUserData = async (req, res) => {
       bio,
       location,
       full_name,
-      year
+      year,
     };
 
     const profile = req.files.profile && req.files.profile[0];
@@ -182,8 +182,6 @@ export const followUser = async (req, res) => {
   }
 };
 
-
-
 // Unfollow User
 export const unfollowUser = async (req, res) => {
   try {
@@ -198,10 +196,14 @@ export const unfollowUser = async (req, res) => {
     }
 
     user.following = user.following.filter((uid) => uid.toString() !== id);
-    toUser.followers = toUser.followers.filter((uid) => uid.toString() !== userId);
+    toUser.followers = toUser.followers.filter(
+      (uid) => uid.toString() !== userId
+    );
 
     user.connections = user.connections.filter((uid) => uid.toString() !== id);
-    toUser.connections = toUser.connections.filter((uid) => uid.toString() !== userId);
+    toUser.connections = toUser.connections.filter(
+      (uid) => uid.toString() !== userId
+    );
 
     await user.save();
     await toUser.save();
@@ -223,9 +225,6 @@ export const unfollowUser = async (req, res) => {
     res.json({ success: false, message: error.message });
   }
 };
-
-
-
 
 // Send Connection Request
 export const sendConnectionRequest = async (req, res) => {
@@ -355,7 +354,6 @@ export const acceptConnectionRequest = async (req, res) => {
   }
 };
 
-
 // Get User Profile
 export const getUserProfiles = async (req, res) => {
   try {
@@ -371,7 +369,6 @@ export const getUserProfiles = async (req, res) => {
     res.json({ success: false, message: error.message });
   }
 };
-
 
 // Get newest 6 users
 export const getNewUsers = async (req, res) => {

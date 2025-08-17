@@ -19,15 +19,42 @@ const Feed = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlSearch = searchParams.get("search") || "";
 
+  // Fetch user saved posts
+  const fetchUserSavedPosts = async () => {
+    try {
+      const { data } = await api.get("/api/saved", {
+        headers: { Authorization: `Bearer ${await getToken()}` },
+      });
+      if (data.success) return data.posts.map((p) => p._id.toString());
+      return [];
+    } catch (error) {
+      toast.error(error.message);
+      return [];
+    }
+  };
+
+  // Fetch feed posts and mark saved posts
   const fetchFeeds = async (search = "") => {
     try {
       setLoading(true);
+      const token = await getToken();
+
       const { data } = await api.get("/api/post/feed", {
         params: { search },
-        headers: { Authorization: `Bearer ${await getToken()}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
-      if (data.success) setFeeds(data.posts);
-      else toast.error(data.message);
+
+      if (data.success) {
+        const savedIds = await fetchUserSavedPosts();
+
+        const feedsWithSaved = data.posts.map((p) => ({
+          ...p,
+          _id: p._id.toString(),
+          savedByCurrentUser: savedIds.includes(p._id.toString()),
+        }));
+
+        setFeeds(feedsWithSaved);
+      } else toast.error(data.message);
     } catch (error) {
       toast.error(error.message);
     }
@@ -35,11 +62,8 @@ const Feed = () => {
   };
 
   useEffect(() => {
-    if (urlSearch) {
-      fetchFeeds(urlSearch); // fetch posts based on URL
-    } else {
-      fetchFeeds(); // fetch all posts if no search
-    }
+    if (urlSearch) fetchFeeds(urlSearch); // fetch posts based on URL
+    else fetchFeeds(); // fetch all posts if no search
   }, [urlSearch]);
 
   const handleSearchClick = () => {
@@ -88,6 +112,16 @@ const Feed = () => {
                 onDelete={(deletedId) =>
                   setFeeds((prev) => prev.filter((p) => p._id !== deletedId))
                 }
+                onToggleSaved={(postId, isSaved) => {
+                  // Update the feeds state immediately when saving/unsaving
+                  setFeeds((prev) =>
+                    prev.map((p) =>
+                      p._id === postId
+                        ? { ...p, savedByCurrentUser: isSaved }
+                        : p
+                    )
+                  );
+                }}
               />
             ))
           ) : (
@@ -106,7 +140,7 @@ const Feed = () => {
           />
           <p className="text-slate-600">Email marketing</p>
           <p>
-            Superchange your marketing with a powerful, easy-to-use platform
+            Supercharge your marketing with a powerful, easy-to-use platform
             built for results.
           </p>
         </div>

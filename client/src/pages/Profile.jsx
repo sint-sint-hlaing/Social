@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { dummyPostsData, dummyUserData } from "../assets/assets";
 import { Link, useParams } from "react-router-dom";
 import Loading from "../components/Loading";
 import UserProfileInfo from "../components/UserProfileInfo";
@@ -21,18 +20,25 @@ const Profile = () => {
   const { getToken } = useAuth();
 
   const fetchUser = async (profileId) => {
-    const token = await getToken();
     try {
+      const token = await getToken();
       const { data } = await api.post(
         `/api/user/profiles`,
         { profileId },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       if (data.success) {
+        // Mark posts as saved if currentUser has saved them
+        const userSavedPosts = (data.profile.saved_posts || []).map((id) =>
+          id.toString()
+        );
+        const postsWithSaved = data.posts.map((p) => ({
+          ...p,
+          _id: p._id.toString(), // normalize
+          savedByCurrentUser: userSavedPosts.includes(p._id.toString()),
+        }));
         setUser(data.profile);
-        setPosts(data.posts);
+        setPosts(postsWithSaved);
       } else {
         toast.error(data.message);
       }
@@ -40,13 +46,31 @@ const Profile = () => {
       toast.error(error.message);
     }
   };
-  useEffect(() => {
-    if (profileId) {
-      fetchUser(profileId);
-    } else {
-      fetchUser(currentUser._id);
+
+  const fetchSavedPosts = async () => {
+    try {
+      const token = await getToken();
+      const { data } = await api.get("/api/saved", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (data.success) {
+        const savedPosts = data.posts.map((p) => ({
+          ...p,
+          _id: p._id.toString(),
+          savedByCurrentUser: true, // Already saved
+        }));
+        setPosts(savedPosts);
+      }
+    } catch (error) {
+      toast.error(error.message);
     }
-  }, [profileId, currentUser]);
+  };
+
+  useEffect(() => {
+    if (activeTab === "saved") fetchSavedPosts();
+    else if (profileId) fetchUser(profileId);
+    else fetchUser(currentUser._id);
+  }, [activeTab, profileId, currentUser]);
 
   return user ? (
     <div className="relative h-full overflow-y-scroll bg-gray-50 p-6">
@@ -71,14 +95,15 @@ const Profile = () => {
             setShowEdit={setShowEdit}
           />
         </div>
+
         {/* Tabs */}
-        <div className=" mt-6">
-          <div className=" bg-white rounded-xl shadow p-1 flex max-w-md mx-auto">
-            {["posts", "media", "likes"].map((tab) => (
+        <div className="mt-6">
+          <div className="bg-white rounded-xl shadow p-1 flex max-w-md mx-auto">
+            {["posts", "media", "saved"].map((tab) => (
               <button
                 onClick={() => setActiveTab(tab)}
                 key={tab}
-                className={` flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+                className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
                   activeTab === tab
                     ? "bg-gray-800 text-white"
                     : "text-gray-600 hover:text-gray-900"
@@ -88,9 +113,10 @@ const Profile = () => {
               </button>
             ))}
           </div>
+
           {/* Posts */}
           {activeTab === "posts" && (
-            <div className=" mt-6 flex flex-col items-center gap-6">
+            <div className="mt-6 flex flex-col items-center gap-6">
               {posts.map((post) => (
                 <PostCard key={post._id} post={post} />
               ))}
@@ -99,34 +125,51 @@ const Profile = () => {
 
           {/* Media */}
           {activeTab === "media" && (
-            <div className=" flex flex-wrap mt-6 max-w-6xl">
+            <div className="flex flex-wrap mt-6 max-w-6xl">
               {posts
                 .filter((post) => post.image_urls.length > 0)
-                .map((post) => (
-                  <>
-                    {post.image_urls.map((image, index) => (
-                      <Link
-                        className=" relative group"
-                        target="_blank"
-                        to={image}
-                        key={index}
-                      >
-                        <img
-                          src={image}
-                          className=" w-64 aspect-video object-cover "
-                          alt=""
-                        />
-                        <p className=" absolute bottom-0 right-0 text-xs p-1 px-3 backdrop-blur-xl text-white opacity-0 group-hover:opacity-100 transition duration-300 ">
-                          Posted {moment(post.createdAt).fromNow()}
-                        </p>
-                      </Link>
-                    ))}
-                  </>
-                ))}
+                .map((post) =>
+                  post.image_urls.map((image, index) => (
+                    <Link
+                      className="relative group"
+                      target="_blank"
+                      to={image}
+                      key={index}
+                    >
+                      <img
+                        src={image}
+                        className="w-64 aspect-video object-cover"
+                        alt=""
+                      />
+                      <p className="absolute bottom-0 right-0 text-xs p-1 px-3 backdrop-blur-xl text-white opacity-0 group-hover:opacity-100 transition duration-300">
+                        Posted {moment(post.createdAt).fromNow()}
+                      </p>
+                    </Link>
+                  ))
+                )}
+            </div>
+          )}
+
+          {/* Saved */}
+          {activeTab === "saved" && (
+            <div className="mt-6 flex flex-col items-center gap-6">
+              {posts.map((post) => (
+                <PostCard
+                  key={post._id}
+                  post={post}
+                  onToggleSaved={(postId, isSaved) => {
+                    if (!isSaved) {
+                      // Remove post from the saved tab immediately
+                      setPosts((prev) => prev.filter((p) => p._id !== postId));
+                    }
+                  }}
+                />
+              ))}
             </div>
           )}
         </div>
       </div>
+
       {/* Edit Profile Modal */}
       {showEdit && <ProfileModal setShowEdit={setShowEdit} />}
     </div>

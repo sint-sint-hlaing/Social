@@ -16,6 +16,9 @@ const userSchema = new mongoose.Schema(
     followers: [{ type: String, ref: "User", default: [] }],
     following: [{ type: String, ref: "User", default: [] }],
     connections: [{ type: String, ref: "User", default: [] }],
+    saved_posts: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "Post", default: [] },
+    ],
   },
   { timestamps: true, minimize: false }
 );

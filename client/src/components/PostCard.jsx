@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   BadgeCheck,
   Heart,
   MessageCircle,
-  Share2,
   MoreVertical,
+  Bookmark,
 } from "lucide-react";
 import moment from "moment";
 import { useNavigate } from "react-router-dom";
@@ -14,48 +14,58 @@ import api from "../api/axios";
 import toast from "react-hot-toast";
 import CommentModal from "./CommentModal";
 
-const PostCard = ({ post, onDelete }) => {
-  const postWithHashtages = post.content?.replace(
-    /(#\w+)/g,
-    '<span class ="text-indigo-600">$1</span>'
-  );
-
+const PostCard = ({ post, onDelete ,onToggleSaved  }) => {
   const [likes, setLikes] = useState(post.likes_count);
-  const [menuOpen, setMenuOpen] = useState(false); // For three-dot menu
-  const currentUser = useSelector((state) => state.user.value);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [commentCount, setCommentCount] = useState(post.comments?.length || 0);
+  const [saved, setSaved] = useState(post.savedByCurrentUser || false);
 
   const { getToken } = useAuth();
+  const currentUser = useSelector((state) => state.user.value);
   const navigate = useNavigate();
 
-  // Fallback for deleted user
-  const user = post.user || {
-    _id: null,
-    full_name: "Deleted Account",
-    username: "deleted",
-    profile_picture: "/path/to/default-profile.png",
+  const user = post.user;
+
+  // Handle Save / Unsave
+   const handleSave = async () => {
+    try {
+      const token = await getToken();
+      const { data } = await api.post(
+        `/api/saved/toggle/${post._id}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (data.success) {
+        setSaved(data.saved);
+        toast.success(data.message);
+
+        // Notify parent
+        if (onToggleSaved) onToggleSaved(post._id, data.saved);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
+  // Handle Like / Unlike
   const handleLike = async () => {
     try {
       const { data } = await api.post(
         `/api/post/like`,
         { postId: post._id },
-        {
-          headers: { Authorization: `Bearer ${await getToken()}` },
-        }
+        { headers: { Authorization: `Bearer ${await getToken()}` } }
       );
       if (data.success) {
-        toast.success(data.message);
         setLikes((prev) =>
           prev.includes(currentUser._id)
             ? prev.filter((id) => id !== currentUser._id)
             : [...prev, currentUser._id]
         );
-      } else {
-        toast.error(data.message);
-      }
+        toast.success(data.message);
+      } else toast.error(data.message);
     } catch (error) {
       toast.error(error.message);
     }
@@ -63,23 +73,21 @@ const PostCard = ({ post, onDelete }) => {
 
   const handleDelete = async () => {
     if (!window.confirm("Are you sure you want to delete this post?")) return;
-
     try {
       const { data } = await api.delete(`/api/post/${post._id}`, {
         headers: { Authorization: `Bearer ${await getToken()}` },
       });
-      if (data.success) {
-        toast.success(data.message);
-
-        // Notify parent to remove post
-        if (onDelete) onDelete(post._id);
-      } else {
-        toast.error(data.message);
-      }
+      if (data.success && onDelete) onDelete(post._id);
+      toast.success(data.message);
     } catch (error) {
       toast.error(error.message);
     }
   };
+
+  const postWithHashtags = post.content?.replace(
+    /(#\w+)/g,
+    '<span class="text-indigo-600">$1</span>'
+  );
 
   return (
     <div className="bg-white rounded-xl shadow p-4 space-y-4 w-full max-w-2xl relative">
@@ -105,7 +113,7 @@ const PostCard = ({ post, onDelete }) => {
           </div>
         </div>
 
-        {/* Three-dot menu for delete */}
+        {/* Three-dot menu */}
         {currentUser._id === user._id && (
           <div className="relative">
             <MoreVertical
@@ -113,10 +121,10 @@ const PostCard = ({ post, onDelete }) => {
               onClick={() => setMenuOpen((prev) => !prev)}
             />
             {menuOpen && (
-              <div className="absolute right-0 bg-gray-100  rounded shadow-md z-10">
+              <div className="absolute right-0 bg-gray-100 rounded shadow-md z-10">
                 <button
                   onClick={handleDelete}
-                  className=" cursor-pointer flex items-center gap-2 px-4 py-2 text-red-500 hover:bg-gray-100 w-full"
+                  className="flex items-center gap-2 px-4 py-2 text-red-500 hover:bg-gray-100 w-full"
                 >
                   Delete
                 </button>
@@ -130,7 +138,7 @@ const PostCard = ({ post, onDelete }) => {
       {post.content && (
         <div
           className="text-gray-800 text-sm whitespace-pre-line"
-          dangerouslySetInnerHTML={{ __html: postWithHashtages }}
+          dangerouslySetInnerHTML={{ __html: postWithHashtags }}
         />
       )}
 
@@ -166,18 +174,24 @@ const PostCard = ({ post, onDelete }) => {
           />
           <span>{commentCount}</span>
         </div>
-        <div className="flex items-center gap-1">
-          <Share2 className="w-4 h-4" />
-          <span>{7}</span>
-        </div>
+
+        {/* Save Button */}
+        <button onClick={handleSave} className="px-2 py-1 rounded">
+          <Bookmark
+            className={`w-4 h-4 cursor-pointer transition-colors ${
+              saved ? "text-orange-500" : ""
+            }`}
+          />
+        </button>
       </div>
+
       {/* Modal */}
       <CommentModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         postId={post._id}
         onCommentAdded={() => setCommentCount((prev) => prev + 1)}
-         onCommentDeleted={() => setCommentCount((prev) => prev - 1)} 
+        onCommentDeleted={() => setCommentCount((prev) => prev - 1)}
       />
     </div>
   );
