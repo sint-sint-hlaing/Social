@@ -126,7 +126,14 @@ const CreatePost = () => {
               accept="image/*"
               hidden
               multiple
-              onChange={(e) => setImages([...images, ...e.target.files])}
+              onChange={(e) => {
+                const selectedFiles = Array.from(e.target.files);
+                if (images.length + selectedFiles.length > 4) {
+                  toast.error("You can upload a maximum of 4 images");
+                  return;
+                }
+                setImages([...images, ...selectedFiles]);
+              }}
             />
             <button
               onClick={() =>

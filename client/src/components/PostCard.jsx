@@ -5,6 +5,10 @@ import {
   MessageCircle,
   MoreVertical,
   Bookmark,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  X,
 } from "lucide-react";
 import moment from "moment";
 import { useNavigate } from "react-router-dom";
@@ -21,6 +25,8 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
   const [commentCount, setCommentCount] = useState(post.comments?.length || 0);
   const [saved, setSaved] = useState(post.savedByCurrentUser || false);
   const [confirmDeleteModal, setConfirmDeleteModal] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [previewIndex, setPreviewIndex] = useState(null);
 
   const { getToken } = useAuth();
   const currentUser = useSelector((state) => state.user.value);
@@ -179,8 +185,9 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
             key={index}
             className={`w-full h-48 object-cover rounded-lg ${
               post.image_urls.length === 1 && "col-span-2 h-auto"
-            }`}
+            } cursor-pointer`}
             alt=""
+            onClick={() => setPreviewIndex(index)} // <-- open preview by index
           />
         ))}
       </div>
@@ -255,6 +262,59 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
             </div>
           </div>
         </>
+      )}
+
+      {/* Image Preview Modal */}
+      {previewIndex !== null && (
+        <div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+          onClick={() => setPreviewIndex(null)}
+        >
+          {/* Close Button */}
+          <button
+            className="absolute top-4 right-4 bg-white/30 hover:bg-white/60 text-white rounded-full p-2 shadow-lg transition"
+            onClick={(e) => {
+              e.stopPropagation();
+              setPreviewIndex(null);
+            }}
+          >
+            <X className="w-6 h-6 text-black" />
+          </button>
+
+          {/* Left Arrow */}
+          <button
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/60 text-white rounded-full p-3 shadow-lg transition"
+            onClick={(e) => {
+              e.stopPropagation();
+              setPreviewIndex((prev) =>
+                prev > 0 ? prev - 1 : post.image_urls.length - 1
+              );
+            }}
+          >
+            <ChevronLeft className="w-6 h-6 text-black" />
+          </button>
+
+          {/* Image */}
+          <img
+            src={post.image_urls[previewIndex]}
+            alt=""
+            className="max-h-[90%] max-w-[90%] rounded-lg shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {/* Right Arrow */}
+          <button
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/60 text-white rounded-full p-3 shadow-lg transition"
+            onClick={(e) => {
+              e.stopPropagation();
+              setPreviewIndex((prev) =>
+                prev < post.image_urls.length - 1 ? prev + 1 : 0
+              );
+            }}
+          >
+            <ChevronRight className="w-6 h-6 text-black" />
+          </button>
+        </div>
       )}
     </div>
   );

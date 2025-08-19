@@ -11,6 +11,14 @@ export const addPost = async (req, res) => {
     const { content, post_type } = req.body;
     const images = req.files;
 
+      // Limit to 4 images
+    if (images.length > 4) {
+      return res.status(400).json({
+        success: false,
+        message: "You can upload a maximum of 4 images per post",
+      });
+    }
+
     let image_urls = [];
 
     if (images.length) {
