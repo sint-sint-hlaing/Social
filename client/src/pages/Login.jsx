@@ -29,23 +29,23 @@ const Login = () => {
 
             {/* Features Grid */}
             <div className="grid grid-cols-2 gap-6 mt-8">
-              <div className="flex items-center gap-3 bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition">
+              <div className="flex items-center gap-3 bg-white p-4 rounded-xl  transition">
                 <Lightbulb className="w-6 h-6 text-yellow-500" />
                 <p className="text-sm font-medium text-gray-800">Share Ideas</p>
               </div>
-              <div className="flex items-center gap-3 bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition">
+              <div className="flex items-center gap-3 bg-white p-4 rounded-xl  transition">
                 <Users className="w-6 h-6 text-pink-500" />
                 <p className="text-sm font-medium text-gray-800">
                   Find Classmates
                 </p>
               </div>
-              <div className="flex items-center gap-3 bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition">
+              <div className="flex items-center gap-3 bg-white p-4 rounded-xl  transition">
                 <BookOpen className="w-6 h-6 text-orange-500" />
                 <p className="text-sm font-medium text-gray-800">
                   Study Groups
                 </p>
               </div>
-              <div className="flex items-center gap-3 bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition">
+              <div className="flex items-center gap-3 bg-white p-4 rounded-xl  transition">
                 <Calendar className="w-6 h-6 text-rose-500" />
                 <p className="text-sm font-medium text-gray-800">
                   Campus Events

@@ -27,25 +27,42 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
   const navigate = useNavigate();
   const user = post.user;
 
-  const renderContentWithHashtags = (text) => {
-    const parts = text.split(/(\#[a-zA-Z0-9_]+)/g); // split hashtags
+  // Render content with clickable links and hashtags
+  const renderContent = (text) => {
+    if (!text) return null;
+
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+
     return parts.map((part, idx) => {
-      if (part.startsWith("#")) {
+      if (part.match(urlRegex)) {
         return (
-          <span
+          <a
             key={idx}
-            className="text-blue-500 cursor-pointer hover:underline"
-            onClick={() => onClickHashtag && onClickHashtag(part)}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline"
           >
             {part}
-          </span>
+          </a>
+        );
+      } else {
+        const subParts = part.split(/(\#[a-zA-Z0-9_]+)/g);
+        return subParts.map((sub, subIdx) =>
+          sub.startsWith("#") ? (
+            <span
+              key={subIdx}
+              className="text-blue-500 cursor-pointer hover:underline"
+              onClick={() => onClickHashtag && onClickHashtag(sub)}
+            >
+              {sub}
+            </span>
+          ) : (
+            <span key={subIdx}>{sub}</span>
+          )
         );
       }
-      return (
-        <span key={idx}>
-          {part}
-        </span>
-      );
     });
   };
 
@@ -102,11 +119,6 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
     }
   };
 
-  const postWithHashtags = post.content?.replace(
-    /(#\w+)/g,
-    '<span class="text-indigo-600">$1</span>'
-  );
-
   return (
     <div className="bg-white rounded-xl shadow p-4 space-y-4 w-full max-w-2xl relative">
       {/* User Info */}
@@ -140,7 +152,6 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
             />
             {menuOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-10">
-                {/* Delete button always visible */}
                 <button
                   onClick={() => setConfirmDeleteModal(true)}
                   className="flex items-center justify-center gap-2 px-4 py-2 text-red-600 font-medium rounded-lg hover:bg-red-50 active:bg-red-100 transition-colors duration-150 w-full"
@@ -156,7 +167,7 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
       {/* Content */}
       {post.content && (
         <div className="text-gray-800 text-sm whitespace-pre-line">
-          {renderContentWithHashtags(post.content)}
+          {renderContent(post.content)}
         </div>
       )}
 
@@ -215,13 +226,10 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
       {/* Confirm Delete Modal */}
       {confirmDeleteModal && (
         <>
-          {/* Backdrop */}
           <div
             className="fixed inset-0 bg-black/50  z-90"
             onClick={() => setConfirmDeleteModal(false)}
           />
-
-          {/* Centered Modal */}
           <div className="fixed inset-0 flex items-center justify-center z-100">
             <div className="bg-white rounded-xl shadow-lg p-6 w-80">
               <h3 className="text-lg font-medium text-gray-800 mb-4">
@@ -236,8 +244,8 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
                 </button>
                 <button
                   onClick={() => {
-                    setConfirmDeleteModal(false); // close modal
-                    setMenuOpen(false); // also close menu
+                    setConfirmDeleteModal(false);
+                    setMenuOpen(false);
                   }}
                   className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
                 >
