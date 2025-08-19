@@ -42,7 +42,7 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
         );
       }
       return (
-        <span key={idx} key={idx}>
+        <span key={idx}>
           {part}
         </span>
       );

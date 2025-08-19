@@ -85,6 +85,11 @@ const Feed = () => {
             type="text"
             placeholder="Search posts..."
             value={searchTerm}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleSearchClick();
+              }
+            }}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="flex-1 p-2 border border-orange-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
           />

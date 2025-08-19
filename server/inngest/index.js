@@ -19,10 +19,10 @@ const syncUserCreation = inngest.createFunction(
   async ({ event }) => {
     try {
       console.log("syncUserCreation triggered with event:", event);
-      const { id, email_addresses, image_url } = event.data;
+      const { id, email_addresses, first_name, last_name, image_url } = event.data;
       const email = email_addresses?.[0]?.email_address || "";
 
-      // Enforce @ucsmub.edu.mm domain
+      
       // if (!email.toLowerCase().endsWith("@ucsmub.edu.mm")) {
       //   console.log(`Blocked signup for email: ${email}`);
       //   throw new Error("Only @ucsmub.edu.mm emails are allowed to register.");
@@ -39,7 +39,7 @@ const syncUserCreation = inngest.createFunction(
       const userData = {
         _id: id,
         email,
-        full_name: username,
+        full_name: first_name + " " + last_name,,
         profile_picture: image_url,
         username,
       };
@@ -47,7 +47,6 @@ const syncUserCreation = inngest.createFunction(
       await User.create(userData);
     } catch (error) {
       console.error("Error syncing user creation:", error);
-      // Optional: rethrow so Inngest logs it as a failure
       throw error;
     }
   }

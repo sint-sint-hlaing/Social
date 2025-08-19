@@ -80,6 +80,7 @@ const App = () => {
           <Route path="create-post" element={<CreatePost />} />
         </Route>
       </Routes>
+      
     </>
   );
 };

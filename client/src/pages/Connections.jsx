@@ -26,7 +26,7 @@ const Connections = () => {
   const dataArray = [
     { label: "Followers", value: followers || [], icon: Users },
     { label: "Following", value: following || [], icon: UserCheck },
-    { label: "Pending", value: pendingConnections || [], icon: UserRoundPen },
+    // { label: "Pending", value: pendingConnections || [], icon: UserRoundPen },
     { label: "Connections", value: connections || [], icon: UserPlus },
   ];
 
@@ -179,17 +179,23 @@ const Connections = () => {
                     </button>
 
                     {currentTab === "Followers" && (
-                      <button
-                        onClick={() => handleFollow(user._id)}
-                        className={`w-full p-2 text-sm rounded active:scale-95 transition cursor-pointer ${
-                          followedIds.has(user._id)
-                            ? "bg-green-200 text-green-900 cursor-default"
-                            : "bg-green-100 hover:bg-green-200 text-green-700"
-                        }`}
-                        disabled={followedIds.has(user._id)}
-                      >
-                        {followedIds.has(user._id) ? "Following" : "Follow"}
-                      </button>
+                      <>
+                        {followedIds.has(user._id) ? (
+                          <button
+                            onClick={() => handleUnfollow(user._id)}
+                            className="w-full p-2 text-sm rounded bg-red-100 hover:bg-red-200 text-red-700 active:scale-95 transition cursor-pointer"
+                          >
+                            Unfollow
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleFollow(user._id)}
+                            className="w-full p-2 text-sm rounded bg-green-100 hover:bg-green-200 text-green-700 active:scale-95 transition cursor-pointer"
+                          >
+                            Follow
+                          </button>
+                        )}
+                      </>
                     )}
 
                     {currentTab === "Following" && (
@@ -201,14 +207,14 @@ const Connections = () => {
                       </button>
                     )}
 
-                    {currentTab === "Pending" && (
+                    {/* {currentTab === "Pending" && (
                       <button
                         onClick={() => acceptConnection(user._id)}
                         className="w-full p-2 text-sm rounded bg-green-100 hover:bg-green-200 text-green-700 active:scale-95 transition cursor-pointer"
                       >
                         Accept
                       </button>
-                    )}
+                    )} */}
 
                     {currentTab === "Connections" && (
                       <button

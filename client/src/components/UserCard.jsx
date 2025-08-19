@@ -1,9 +1,7 @@
 import React from "react";
-import { dummyUserData } from "../assets/assets";
-import { MapPin, MessageCircle, Plus, UserPlus } from "lucide-react";
-import { useSelector } from "react-redux";
+import { UserPlus } from "lucide-react";
+import { useSelector, useDispatch } from "react-redux";
 import { useAuth } from "@clerk/clerk-react";
-import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { fetchUser } from "../features/user/userSlice";
@@ -15,14 +13,13 @@ const UserCard = ({ user }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  // follow
   const handleFollow = async () => {
     try {
       const { data } = await api.post(
         "/api/user/follow",
         { id: user._id },
-        {
-          headers: { Authorization: `Bearer ${await getToken()}` },
-        }
+        { headers: { Authorization: `Bearer ${await getToken()}` } }
       );
       if (data.success) {
         toast.success(data.message);
@@ -34,18 +31,14 @@ const UserCard = ({ user }) => {
       toast.error(error.message);
     }
   };
-  const handleConnectionRequest = async () => {
-    if ((currentUser?.connections ?? []).includes(user._id)) {
-      return navigate("/messages/" + user._id);
-    }
 
+  // unfollow
+  const handleUnfollow = async () => {
     try {
       const { data } = await api.post(
-        "/api/user/connect",
+        "/api/user/unfollow",
         { id: user._id },
-        {
-          headers: { Authorization: `Bearer ${await getToken()}` },
-        }
+        { headers: { Authorization: `Bearer ${await getToken()}` } }
       );
       if (data.success) {
         toast.success(data.message);
@@ -57,11 +50,13 @@ const UserCard = ({ user }) => {
       toast.error(error.message);
     }
   };
+
+  const isFollowing = currentUser?.following.includes(user._id);
 
   return (
     <div
       key={user._id}
-      className=" p-4 pt-6 flex flex-col justify-between w-72 shadow border border-gray-200 rounded-md"
+      className="p-4 pt-6 flex flex-col justify-between w-72 shadow border border-gray-200 rounded-md"
     >
       <div>
         <img
@@ -69,39 +64,50 @@ const UserCard = ({ user }) => {
           alt=""
           className="rounded-full w-16 h-16 shadow-md mx-auto"
         />
-        <p className=" mt-4 font-semibold">{user.full_name}</p>
+        <p className="mt-4 font-semibold text-center">{user.full_name}</p>
         {user.username && (
-          <p className=" text-gray-500 font-light">@{user.username}</p>
+          <p className="text-gray-500 font-light text-center">
+            @{user.username}
+          </p>
         )}
         {user.bio && (
-          <p className=" text-gray-600 mt-2 text-center text-sm px-4">
+          <p className="text-gray-600 mt-2 text-center text-sm px-4">
             {user.bio}
           </p>
         )}
       </div>
+
       <div className="flex items-center justify-center gap-2 mt-4 text-xs text-gray-600">
         <div className="flex items-center gap-1 border border-gray-300 rounded-full px-3 py-1">
-          <span>{(user.followers ?? []).length}</span>Followers
+          <span>{(user.followers ?? []).length}</span> Followers
         </div>
       </div>
-      <div className="flex mt-4 gap-2">
+
+      <div className="flex max-sm:flex-col gap-2 mt-4">
+        {/* Follow / Unfollow Toggle */}
+        {isFollowing ? (
+          <button
+            onClick={handleUnfollow}
+            className="w-full py-2 rounded-md flex justify-center items-center gap-2 bg-red-100 hover:bg-red-200 text-red-700 active:scale-95 transition cursor-pointer"
+          >
+            Unfollow
+          </button>
+        ) : (
+          <button
+            onClick={handleFollow}
+            className="w-full py-2 rounded-md flex justify-center items-center gap-2 bg-green-100 hover:bg-green-200 text-green-700 active:scale-95 transition cursor-pointer"
+          >
+            <UserPlus className="w-4 h-4 text-green-700" />
+            Follow
+          </button>
+        )}
+
+        {/* Profile Button */}
         <button
-          onClick={handleFollow}
-          disabled={currentUser?.following.includes(user._id)}
-          className="w-full py-2 rounded-md flex justify-center items-center gap-2  bg-orange-100 hover:bg-orange-200 text-orange-800 active:scale-95 transition  cursor-pointer"
+          onClick={() => navigate(`/profile/${user._id}`)}
+          className="w-full p-2 text-sm rounded bg-orange-100 hover:bg-orange-200 text-orange-800 active:scale-95 transition cursor-pointer"
         >
-          <UserPlus  className="w-4 h-4 text-orange-800" />
-          {currentUser?.following.includes(user._id) ? "Following" : "Follow"}
-        </button>
-        <button
-          onClick={handleConnectionRequest}
-          className="flex items-center justify-center w-16  bg-slate-100 hover:bg-slate-200 text-black  p rounded-md cursor-pointer active:scale-95 transition"
-        >
-          {(currentUser?.connections ?? []).includes(user._id) ? (
-            <MessageCircle className="w-4 h-4 group-hover:scale-105 transition " />
-          ) : (
-            <Plus className="w-4 h-4 group-hover:scale-105 transition" />
-          )}
+          View Profile
         </button>
       </div>
     </div>

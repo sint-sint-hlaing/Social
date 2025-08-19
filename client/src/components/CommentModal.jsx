@@ -41,27 +41,26 @@ const CommentModal = ({
 
   // Add new comment
   const handleAddComment = async () => {
-  if (!newComment.trim()) return;
+    if (!newComment.trim()) return;
 
-  try {
-    const token = await getToken();
-    const { data } = await api.post(
-      "/api/comments",
-      { post: postId, user: user, text: newComment },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    try {
+      const token = await getToken();
+      const { data } = await api.post(
+        "/api/comments",
+        { post: postId, user: user, text: newComment },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    // Prepend new comment to show first
-    setComments((prev) => [data, ...prev]);
-    setNewComment("");
+      // Prepend new comment to show first
+      setComments((prev) => [data, ...prev]);
+      setNewComment("");
 
-    if (onCommentAdded) onCommentAdded();
-  } catch (err) {
-    console.error(err);
-    toast.error("Failed to add comment.");
-  }
-};
-
+      if (onCommentAdded) onCommentAdded();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to add comment.");
+    }
+  };
 
   // Delete comment
   const handleDeleteComment = async (commentId) => {
@@ -114,7 +113,7 @@ const CommentModal = ({
                   <div className="bg-gray-100 rounded-lg px-3 py-2 max-w-[80%]">
                     <p className="text-sm font-medium">{c.user?.full_name}</p>
                     <p className="text-sm text-gray-700">{c.text}</p>
-                     <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-gray-400 mt-1">
                       {moment(c.createdAt).fromNow()}
                     </p>
                   </div>
@@ -147,6 +146,11 @@ const CommentModal = ({
             placeholder="Write a comment..."
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleAddComment();
+              }
+            }}
             className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring"
           />
           <button
