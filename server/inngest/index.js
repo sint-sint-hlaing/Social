@@ -178,19 +178,24 @@ export const deleteStory = inngest.createFunction(
 
 const sendNotificationOfUnseenMessage = inngest.createFunction(
   { id: "send-unseen-messages-notification" },
-  { cron: "TZ=America/New_York 0 0 * * *" }, // Every Day 9 AM
+  { cron: "TZ=America/New_York 0 0 * * *" }, 
   async ({ step }) => {
-    const unseenCount = {}; // ✅ initialize here
+    const unseenCount = {}; 
 
     const messages = await Message.find({ seen: false }).populate("to_user_id");
 
-    messages.map((message) => {
-      unseenCount[message.to_user_id._id] =
-        (unseenCount[message.to_user_id._id] || 0) + 1;
+    messages.forEach((message) => {
+      if (!message.to_user_id) {
+        console.warn("Message with missing recipient:", message._id);
+        return; // skip if no recipient
+      }
+      const userId = message.to_user_id._id.toString();
+      unseenCount[userId] = (unseenCount[userId] || 0) + 1;
     });
 
     for (const userId in unseenCount) {
       const user = await User.findById(userId);
+      if (!user) continue; // skip if user was deleted
 
       const subject = `You have ${unseenCount[userId]} unseen messages`;
 
@@ -206,9 +211,11 @@ const sendNotificationOfUnseenMessage = inngest.createFunction(
         body,
       });
     }
+
     return { message: "Notification sent." };
   }
 );
+
 
 // Create an empty array where we'll export future Inngest functions
 export const functions = [
