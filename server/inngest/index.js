@@ -178,51 +178,37 @@ export const deleteStory = inngest.createFunction(
 
 const sendNotificationOfUnseenMessage = inngest.createFunction(
   { id: "send-unseen-messages-notification" },
-  { cron: "TZ=America/New_York 0 0 * * *" },
+  { cron: "TZ=America/New_York 0 0 * * *" }, // Every Day 9 AM
   async ({ step }) => {
-    const unseenCount = {};
+    const unseenCount = {}; // ✅ initialize here
 
-    // Get unseen messages (no populate!)
-    const messages = await Message.find({ seen: false });
+    const messages = await Message.find({ seen: false }).populate("to_user_id");
 
-    messages.forEach((message) => {
-      if (!message.to_user_id) return; // skip if missing
-      const userId = message.to_user_id; // already a string
-      unseenCount[userId] = (unseenCount[userId] || 0) + 1;
+    messages.map((message) => {
+      unseenCount[message.to_user_id._id] =
+        (unseenCount[message.to_user_id._id] || 0) + 1;
     });
 
-    for (const userId of Object.keys(unseenCount)) {
-      const user = await User.findOne({ user_id: userId }); // use your string field
-
-      if (!user) {
-        console.warn("⚠️ Skipping notification: user not found:", userId);
-        continue;
-      }
+    for (const userId in unseenCount) {
+      const user = await User.findById(userId);
 
       const subject = `You have ${unseenCount[userId]} unseen messages`;
 
       const body = `<div style="font-family: Arial, sans-serif; padding: 20px">
-          <h2>Hi ${user.full_name || "there"},</h2>
+          <h2>Hi ${user.full_name},</h2>
           <p>You have ${unseenCount[userId]} unseen messages</p>
-          <p>Click <a href="${process.env.FRONTEND_URL}/messages" style="color: #10b981;">here</a> to view them</p>
+          <p>Click <a href="${process.env.FRONTEND_URL}/messages" style="color: #10b981;">here</a> to view theUp - Stay Connected</p>
         </div>`;
 
-      try {
-        await sendEmail({
-          to: user.email,
-          subject,
-          body,
-        });
-      } catch (err) {
-        console.error("❌ Failed to send email to", user.email, err);
-      }
+      await sendEmail({
+        to: user.email,
+        subject,
+        body,
+      });
     }
-
-    return { message: "Notification job completed." };
+    return { message: "Notification sent." };
   }
 );
-
-
 
 // Create an empty array where we'll export future Inngest functions
 export const functions = [

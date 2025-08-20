@@ -1,16 +1,28 @@
+// routes/messageRoutes.js
+import express from "express";
 import { upload } from "../config/multer.js";
+import { protect } from "../middlewares/auth.js";
 import {
   getChatMessages,
   sendMessage,
   sseController,
 } from "../controllers/messageController.js";
-import { protect } from "../middlewares/auth.js";
-import express from "express";
 
 const messageRouter = express.Router();
 
 messageRouter.get("/:userId", sseController);
-messageRouter.post("/send", upload.single("image"), protect, sendMessage);
+
+// protect first, then parse files
+messageRouter.post(
+  "/send",
+  protect,
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "file",  maxCount: 1 },
+  ]),
+  sendMessage
+);
+
 messageRouter.post("/get", protect, getChatMessages);
 
 export default messageRouter;

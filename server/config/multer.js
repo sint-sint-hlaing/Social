@@ -1,9 +1,8 @@
+// config/multer.js
 import multer from "multer";
 
-const storage = multer.diskStorage({});
-
-// app.post("/api/post/add", upload.array("images", 10), addPost);
-
-export const upload = multer({ storage });
-
-
+const storage = multer.memoryStorage(); // get Buffer directly
+export const upload = multer({
+  storage,
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB limit
+});

@@ -34,38 +34,60 @@ export const sseController = (req, res) => {
 // Send Message
 export const sendMessage = async (req, res) => {
   try {
-    const { userId } = req.auth();
+    const { userId } = req.auth();               // Clerk
     const { to_user_id, text } = req.body;
-    const image = req.file;
 
+    const image = req.files?.image?.[0] || null;  // from multer memory
+    const file  = req.files?.file?.[0]  || null;
+
+    let message_type = "text";
     let media_url = "";
-    let message_type = image ? "image" : "text";
+    let file_name = "";
+    let mime_type = "";
 
-    if (message_type === "image") {
-      const fileBuffer = fs.readFileSync(image.path);
-      const response = await imagekit.upload({
-        file: fileBuffer,
+    // If both were sent, prioritize image. Change if you prefer file-first.
+    if (image) {
+      message_type = "image";
+      const resp = await imagekit.upload({
+        file: image.buffer,              // Buffer (memoryStorage)
         fileName: image.originalname,
       });
+      // Use transform ONLY for images
       media_url = imagekit.url({
-        path: response.filePath,
+        path: resp.filePath,
         transformation: [
           { quality: "auto" },
           { format: "webp" },
           { width: "1280" },
         ],
       });
+    } else if (file) {
+      message_type = "file";
+      const resp = await imagekit.upload({
+        file: file.buffer,
+        fileName: file.originalname,
+      });
+      // For non-images, just use the original URL (no transform)
+      media_url = resp.url;
+      file_name = file.originalname;
+      mime_type = file.mimetype;
     }
+
+    // text-only is allowed (message_type remains "text")
     const message = await Message.create({
       from_user_id: userId,
       to_user_id,
       text,
       message_type,
       media_url,
+      file_name: file_name || undefined,
+      mime_type: mime_type || undefined,
     });
+
     res.json({ success: true, message });
 
-    // Send message to to_user_id using SSE
+    // Send to recipient over SSE
+    // (Populate works because your User._id is a string matching from_user_id)
     const messageWithUserData = await Message.findById(message._id).populate(
       "from_user_id"
     );
@@ -76,10 +98,11 @@ export const sendMessage = async (req, res) => {
       );
     }
   } catch (error) {
-    console.log(error);
-    res.json({ success: false, message: error.message });
+    console.error("sendMessage error:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 // Get Chat Message
 export const getChatMessages = async (req, res) => {
@@ -104,6 +127,7 @@ export const getChatMessages = async (req, res) => {
     res.json({ success: false, message: error.message });
   }
 };
+
 export const getUserRecentMessages = async (req, res) => {
   try {
     const { userId } = req.auth();
