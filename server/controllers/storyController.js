@@ -72,3 +72,48 @@ export const getStories = async (req, res) => {
 };
 
 
+export const viewStory = async (req, res) => {
+  try {
+    const { storyId } = req.params;
+    const { userId } = req.auth();
+
+    console.log("Viewing storyId:", storyId, "by userId:", userId);
+
+    const story = await Story.findById(storyId).populate("user", "full_name username");
+    if (!story) return res.status(404).json({ success: false, message: "Story not found" });
+
+    // Record the view if the viewer is not the owner
+    if (story.user._id.toString() !== userId && !story.viewers.includes(userId)) {
+      story.viewers.push(userId);
+      await story.save();
+    }
+
+    // Populate viewer info only if story owner is requesting
+    let viewersData = [];
+    if (story.user._id.toString() === userId) {
+      await story.populate("viewers", "full_name profile_picture username");
+      viewersData = story.viewers;
+    }
+
+    res.json({
+      success: true,
+      story: {
+        _id: story._id,
+        content: story.content,
+        media_url: story.media_url,
+        media_type: story.media_type,
+        background_color: story.background_color,
+        createdAt: story.createdAt,
+        user: story.user,
+      },
+      viewers: viewersData, // only filled for owner
+    });
+  } catch (error) {
+    console.error("Error in viewStory:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+
+

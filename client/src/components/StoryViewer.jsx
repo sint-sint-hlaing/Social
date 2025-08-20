@@ -1,8 +1,31 @@
+import { useAuth } from "@clerk/clerk-react";
 import { BadgeCheck, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import api from "../api/axios";
 
 const StoryViewer = ({ viewStory, setViewStory }) => {
   const [progress, setProgress] = useState(0);
+    const { getToken } = useAuth();
+  const [viewers, setViewers] = useState([]);
+
+  useEffect(() => {
+    if (!viewStory) return;
+
+    const recordView = async () => {
+      const token = await getToken();
+      try {
+        const { data } = await api.post(`/api/story/view/${viewStory._id}`, {}, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (data.success) setViewers(data.viewers);
+      } catch (error) {
+        console.log(error.message);
+      }
+    };
+
+    recordView();
+  }, [viewStory]);
+
 
   useEffect(() => {
     let timer, progressInterval;
@@ -109,6 +132,20 @@ const StoryViewer = ({ viewStory, setViewStory }) => {
       <div className="max-w-[90ww] max-h-[90vh] flex justify-center items-center ">
         {renderContent()}
       </div>
+
+
+
+      <div className="absolute bottom-4 left-4 flex items-center gap-2">
+  {viewers.map((v) => (
+    <img
+      key={v._id}
+      src={v.profile_picture}
+      alt={v.full_name}
+      title={v.full_name}
+      className="w-6 h-6 rounded-full border border-white"
+    />
+  ))}
+</div>
     </div>
   );
 };
