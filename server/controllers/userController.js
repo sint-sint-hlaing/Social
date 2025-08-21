@@ -51,39 +51,22 @@ export const updateUserData = async (req, res) => {
     const cover = req.files.cover && req.files.cover[0];
 
     if (profile) {
-      const buffer = fs.readFileSync(profile.path);
-      const response = await imagekit.upload({
-        file: buffer,
-        fileName: profile.originalname,
-      });
-      const url = imagekit.url({
-        path: response.filePath,
-        transformation: [
-          { quality: "auto" },
-          { format: "webp" },
-          { width: "512" },
-        ],
-      });
-      updatedData.profile_picture = url;
-    }
+  const fileBuffer = profile.buffer || fs.readFileSync(profile.path);  // ✅ safe for both
+  const response = await imagekit.upload({
+    file: fileBuffer,
+    fileName: profile.originalname,
+  });
+  updatedData.profile_picture = response.url;  // use the returned URL
+}
 
-    if (cover) {
-      const buffer = fs.readFileSync(cover.path);
-      const response = await imagekit.upload({
-        file: buffer,
-        fileName: cover.originalname,
-      });
-      const url = imagekit.url({
-        path: response.filePath,
-        transformation: [
-          { quality: "auto" },
-          { format: "webp" },
-          { width: "1280" },
-        ],
-      });
-      updatedData.cover_photo = url;
-    }
-
+if (cover) {
+  const fileBuffer = cover.buffer || fs.readFileSync(cover.path);
+  const response = await imagekit.upload({
+    file: fileBuffer,
+    fileName: cover.originalname,
+  });
+  updatedData.cover_photo = response.url;
+}
     const user = await User.findByIdAndUpdate(userId, updatedData, {
       new: true,
     });
@@ -362,13 +345,19 @@ export const getUserProfiles = async (req, res) => {
     if (!profile) {
       return res.json({ success: false, message: "profile not found" });
     }
-    const posts = await Post.find({ user: profileId }).populate("user");
+
+    // Fetch posts sorted by newest first
+    const posts = await Post.find({ user: profileId })
+      .populate("user")
+      .sort({ createdAt: -1 }); // <-- newest posts at top
+
     res.json({ success: true, profile, posts });
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });
   }
 };
+
 
 // Get newest 6 users
 export const getNewUsers = async (req, res) => {

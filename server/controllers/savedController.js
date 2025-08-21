@@ -47,7 +47,10 @@ export const getSavedPosts = async (req, res) => {
         .status(404)
         .json({ success: false, message: "User not found" });
 
-    res.json({ success: true, posts: user.saved_posts });
+    // Reverse to show latest saved first
+    const posts = [...user.saved_posts].reverse();
+
+    res.json({ success: true, posts });
   } catch (error) {
     console.log(error);
     res.status(500).json({ success: false, message: error.message });

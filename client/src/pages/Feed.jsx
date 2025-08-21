@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { assets } from "../assets/assets";
 import Loading from "../components/Loading";
 import StoriesBar from "../components/StoriesBar";
 import PostCard from "../components/PostCard";
@@ -8,7 +7,7 @@ import RecentMessages from "../components/RecentMessages";
 import { useAuth } from "@clerk/clerk-react";
 import toast from "react-hot-toast";
 import api from "../api/axios";
-import { BookOpen, Search } from "lucide-react";
+import {  Search } from "lucide-react";
 
 const Feed = () => {
   const [feeds, setFeeds] = useState([]);

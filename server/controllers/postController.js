@@ -23,24 +23,29 @@ export const addPost = async (req, res) => {
 
     if (images.length) {
       image_urls = await Promise.all(
-        images.map(async (image) => {
-          const fileBuffer = fs.readFileSync(image.path);
-          const response = await imagekit.upload({
-            file: fileBuffer,
-            fileName: image.originalname,
-            folder: "posts",
-          });
-          const url = imagekit.url({
-            path: response.filePath,
-            transformation: [
-              { quality: "auto" },
-              { format: "webp" },
-              { width: "512" },
-            ],
-          });
-          return url;
-        })
-      );
+  images.map(async (image) => {
+    // Use buffer directly if available, fallback to path
+    const fileBuffer = image.buffer || fs.readFileSync(image.path);
+
+    const response = await imagekit.upload({
+      file: fileBuffer,
+      fileName: image.originalname,
+      folder: "posts",
+    });
+
+    const url = imagekit.url({
+      path: response.filePath,
+      transformation: [
+        { quality: "auto" },
+        { format: "webp" },
+        { width: "512" },
+      ],
+    });
+
+    return url;
+  })
+);
+
     }
     await Post.create({
       user: userId,
@@ -76,9 +81,22 @@ export const getFeedPosts = async (req, res) => {
       query.user = { $in: userIds };
     }
 
-    const posts = await Post.find(query)
-      .populate("user")
-      .sort({ createdAt: -1 });
+    let posts;
+
+if (search) {
+  posts = await Post.find({ content: { $regex: search, $options: "i" } })
+    .populate("user")
+    .sort({ createdAt: -1 }); // latest for search
+} else {
+  // Random posts for feed
+  posts = await Post.aggregate([
+    { $match: { user: { $in: userIds } } },
+    { $sample: { size: 50 } }, // get 50 random posts
+  ]);
+
+  // Populate user for aggregate results
+  posts = await User.populate(posts, { path: "user" });
+}
 
     res.json({ success: true, posts });
   } catch (error) {
