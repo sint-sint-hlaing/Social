@@ -15,6 +15,7 @@ const messageSchema = new mongoose.Schema(
     mime_type: { type: String },       // for files
 
     seen: { type: Boolean, default: false },
+    delivered: { type: Boolean, default: false },
   },
   { timestamps: true, minimize: false }
 );
