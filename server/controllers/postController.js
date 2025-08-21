@@ -55,7 +55,7 @@ export const addPost = async (req, res) => {
   }
 };
 
-//Get Posts;
+
 // Get Feed Posts
 export const getFeedPosts = async (req, res) => {
   try {
@@ -76,21 +76,22 @@ export const getFeedPosts = async (req, res) => {
         .populate("user")
         .sort({ createdAt: -1 });
     } else {
-      // 1. Get the latest post of the logged-in user
+      // 1. Get the most recent post of the logged-in user
       const latestPost = await Post.findOne({ user: userId })
         .populate("user")
         .sort({ createdAt: -1 });
 
-      // 2. Get random posts (excluding that latest one)
+      // 2. Get other random posts (excluding that latest one)
       let randomPosts = await Post.aggregate([
         { $match: { user: { $in: userIds } } },
         ...(latestPost ? [{ $match: { _id: { $ne: latestPost._id } } }] : []),
         { $sample: { size: 50 } },
       ]);
 
+      // Populate user for aggregated posts
       randomPosts = await User.populate(randomPosts, { path: "user" });
 
-      // 3. Merge latestPost at top + random
+      // 3. Merge: newly created post at top + random
       posts = latestPost ? [latestPost, ...randomPosts] : randomPosts;
     }
 
@@ -100,6 +101,7 @@ export const getFeedPosts = async (req, res) => {
     res.json({ success: false, message: error.message });
   }
 };
+
 
 
 // Delete Post
