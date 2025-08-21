@@ -64,11 +64,11 @@ const messagesSlice = createSlice({
       }
     },
     markMessagesDelivered(state, action) {
-      const ids = (action.payload || []).map(String);
-      state.messages = state.messages.map(m =>
-        ids.includes(String(m._id)) ? { ...m, delivered: true } : m
-      );
-    },
+  const ids = (action.payload || []).map(String);
+  state.messages = state.messages.map(m =>
+    ids.includes(String(m._id)) ? { ...m, delivered: true } : m
+  );
+},
     markMessagesSeen(state, action) {
       const ids = (action.payload || []).map(String);
       state.messages = state.messages.map(m =>

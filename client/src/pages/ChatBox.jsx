@@ -16,7 +16,9 @@ import {
 
 const ChatBox = () => {
   const { messages } = useSelector((state) => state.messages);
-  const connections = useSelector((state) => state.connections?.connections || []);
+  const connections = useSelector(
+    (state) => state.connections?.connections || []
+  );
 
   const { userId: otherUserId } = useParams();
   const { getToken } = useAuth();
@@ -92,61 +94,63 @@ const ChatBox = () => {
   }, [otherUserId]);
 
   // SSE connection
- useEffect(() => {
-  if (!me) return;
+  useEffect(() => {
+    if (!me) return;
 
-  if (sseRef.current) sseRef.current.close();
-  const es = new EventSource(`/api/message/${me}`);
-  sseRef.current = es;
+    if (sseRef.current) sseRef.current.close();
 
-  es.addEventListener("message", (ev) => {
-    const payload = JSON.parse(ev.data);
-    if (payload?._id) {
-      dispatch(upsertMessage(payload));
-      markIncomingMessagesSeen([payload]);
-    }
-  });
+    const es = new EventSource(
+      `${import.meta.env.VITE_BASEURL}/api/message/${me}`
+    );
+    sseRef.current = es;
 
-  es.addEventListener("delivered", (ev) => {
-    const payload = JSON.parse(ev.data);
-    const ids = (payload?.messageIds || []).map(String);
-    if (ids.length) dispatch(markMessagesDelivered(ids));
-  });
-
-  es.addEventListener("seen", (ev) => {
-    const payload = JSON.parse(ev.data);
-    const ids = (payload?.messageIds || []).map(String);
-    if (ids.length) dispatch(markMessagesSeen(ids));
-  });
-
-  return () => es.close();
-}, [me]);
-
-const markIncomingMessagesSeen = async (incomingMessages) => {
-  const unseenIds = incomingMessages
-    .filter(msg => getFromId(msg) !== me && !msg.seen)
-    .map(msg => msg._id);
-
-  if (!unseenIds.length) return;
-
-  try {
-    const token = await getToken();
-    await api.post("/api/message/seen", { messageIds: unseenIds }, {
-      headers: { Authorization: `Bearer ${token}` },
+    es.addEventListener("message", (ev) => {
+      const payload = JSON.parse(ev.data);
+      if (payload?._id) {
+        dispatch(upsertMessage(payload));
+        markIncomingMessagesSeen([payload]);
+      }
     });
+
+    es.addEventListener("delivered", (ev) => {
+      const payload = JSON.parse(ev.data);
+      const ids = (payload?.messageIds || []).map(String);
+      if (ids.length) dispatch(markMessagesDelivered(ids));
+    });
+
+    es.addEventListener("seen", (ev) => {
+      const payload = JSON.parse(ev.data);
+      const ids = (payload?.messageIds || []).map(String);
+      if (ids.length) dispatch(markMessagesSeen(ids));
+    });
+
+    return () => es.close();
+  }, [me]);
+
+  const markIncomingMessagesSeen = async (incomingMessages) => {
+    const unseenIds = incomingMessages
+      .filter((msg) => getFromId(msg) !== me && !msg.seen)
+      .map((msg) => msg._id);
+
+    if (!unseenIds.length) return;
+
+    const token = await getToken();
+    await api.post(
+      "/api/message/seen",
+      { messageIds: unseenIds },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
     dispatch(markMessagesSeen(unseenIds));
-  } catch (err) {
-    console.error("Failed to mark messages seen:", err);
-  }
-};
-
-
-
+  };
 
   // Set chat partner info
   useEffect(() => {
     if (!connections.length) return;
-    const u = connections.find(c => c._id === otherUserId || c.id === otherUserId);
+    const u = connections.find(
+      (c) => c._id === otherUserId || c.id === otherUserId
+    );
     setUser(u || null);
   }, [connections, otherUserId]);
 
@@ -175,7 +179,11 @@ const markIncomingMessagesSeen = async (incomingMessages) => {
     <div className="flex flex-col h-screen">
       {/* Header */}
       <div className="flex items-center gap-2 p-2 md:px-10 xl:pl-40 bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-gray-300">
-        <img src={user.profile_picture} alt="" className="w-8 h-8 rounded-full object-cover" />
+        <img
+          src={user.profile_picture}
+          alt=""
+          className="w-8 h-8 rounded-full object-cover"
+        />
         <div>
           <p className="font-medium">{user.full_name}</p>
           <p className="text-sm text-gray-500 -ml-1.5">@{user.username}</p>
@@ -191,11 +199,18 @@ const markIncomingMessagesSeen = async (incomingMessages) => {
               const fromId = getFromId(message);
               const isMine = String(fromId) === String(me);
               const containerAlign = isMine ? "items-end" : "items-start";
-              const bubbleRadius = isMine ? "rounded-bl-none" : "rounded-br-none";
+              const bubbleRadius = isMine
+                ? "rounded-bl-none"
+                : "rounded-br-none";
 
               return (
-                <div key={message._id || index} className={`flex flex-col ${containerAlign}`}>
-                  <div className={`p-2 text-sm max-w-sm bg-white rounded-lg shadow ${bubbleRadius}`}>
+                <div
+                  key={message._id || index}
+                  className={`flex flex-col ${containerAlign}`}
+                >
+                  <div
+                    className={`p-2 text-sm max-w-sm bg-white rounded-lg shadow ${bubbleRadius}`}
+                  >
                     {message.message_type === "image" && message.media_url && (
                       <img
                         src={message.media_url}
@@ -212,20 +227,22 @@ const markIncomingMessagesSeen = async (incomingMessages) => {
                         className="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg max-w-sm break-all hover:bg-gray-200"
                       >
                         <Paperclip className="w-4 h-4 text-gray-700" />
-                        <span className="truncate">{message.file_name || "Download file"}</span>
+                        <span className="truncate">
+                          {message.file_name || "Download file"}
+                        </span>
                       </a>
                     )}
                     {message.text && <p>{message.text}</p>}
 
-            {isMine && (
-  <div className="text-xs mt-1 text-gray-500 text-right">
-    {message.seen ? (
-      <span>Seen</span>
-    ) : message.delivered ? (
-      <span>Delivered</span>
-    ) : null}
-  </div>
-)}
+                    {isMine && (
+                      <div className="text-xs mt-1 text-gray-500 text-right">
+                        {message.seen ? (
+                          <span>Seen</span>
+                        ) : (
+                          <span>Delivered</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -248,7 +265,11 @@ const markIncomingMessagesSeen = async (incomingMessages) => {
 
           <label htmlFor="image" className="cursor-pointer">
             {image ? (
-              <img src={URL.createObjectURL(image)} alt="" className="w-8 h-8 object-cover rounded" />
+              <img
+                src={URL.createObjectURL(image)}
+                alt=""
+                className="w-8 h-8 object-cover rounded"
+              />
             ) : (
               <ImageIcon className="w-6 h-6 text-gray-400 cursor-pointer" />
             )}
@@ -261,7 +282,10 @@ const markIncomingMessagesSeen = async (incomingMessages) => {
             />
           </label>
 
-          <label htmlFor="file" className="max-w-[120px] truncate cursor-pointer">
+          <label
+            htmlFor="file"
+            className="max-w-[120px] truncate cursor-pointer"
+          >
             {file ? (
               <span className="text-sm text-gray-600 truncate inline-block align-middle">
                 {file.name}
