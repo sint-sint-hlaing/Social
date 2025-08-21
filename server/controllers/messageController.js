@@ -31,88 +31,62 @@ export const sseController = (req, res) => {
   const { userId } = req.params;
   const key = String(userId);
 
-  console.log("SSE client connected :", key);
-
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
   res.setHeader("Access-Control-Allow-Origin", "*");
 
-  // heartbeat (optional)
-  const keepAlive = setInterval(() => res.write(": keep-alive\n\n"), 25 * 1000);
+  const keepAlive = setInterval(() => res.write(": keep-alive\n\n"), 25000);
 
   connections[key] = res;
 
-  res.write("event: connected\n");
-  res.write(`data: ${JSON.stringify({ message: "connected", userId: key })}\n\n`);
-
-  // When user connects, mark any undelivered messages TO them as delivered
   (async () => {
-    try {
-      const pending = await Message.find({ to_user_id: key, delivered: false }).lean();
-      if (pending && pending.length) {
-        const ids = pending.map((m) => String(m._id));
-        // mark delivered
-        await Message.updateMany({ to_user_id: key, delivered: false }, { delivered: true });
-
-        // For each distinct sender, notify them that their messages were delivered
-        const bySender = pending.reduce((acc, m) => {
-          const from = String(m.from_user_id);
-          acc[from] = acc[from] || [];
-          acc[from].push(String(m._id));
-          return acc;
-        }, {});
-
-        for (const senderId of Object.keys(bySender)) {
-          notifyUser(senderId, "delivered", { messageIds: bySender[senderId], to_user_id: key });
-        }
+    const pending = await Message.find({ to_user_id: key, delivered: false }).lean();
+    if (pending.length) {
+      const ids = pending.map(m => String(m._id));
+      await Message.updateMany({ to_user_id: key, delivered: false }, { delivered: true });
+      const bySender = pending.reduce((acc, m) => {
+        const from = String(m.from_user_id);
+        acc[from] = acc[from] || [];
+        acc[from].push(String(m._id));
+        return acc;
+      }, {});
+      for (const senderId of Object.keys(bySender)) {
+        notifyUser(senderId, "delivered", { messageIds: bySender[senderId], to_user_id: key });
       }
-    } catch (err) {
-      console.error("Error marking pending delivered on connect:", err);
     }
   })();
 
   req.on("close", () => {
     clearInterval(keepAlive);
     delete connections[key];
-    console.log("SSE client disconnected:", key);
   });
 };
+
 
 
 // Send Message
 export const sendMessage = async (req, res) => {
   try {
-    const { userId } = req.auth();               // Clerk
+    const { userId } = req.auth();
     const { to_user_id, text } = req.body;
 
-    const image = req.files?.image?.[0] || null;
-    const file  = req.files?.file?.[0]  || null;
-
+    // handle image/file
     let message_type = "text";
     let media_url = "";
     let file_name = "";
     let mime_type = "";
 
-    if (image) {
+    if (req.files?.image?.[0]) {
       message_type = "image";
-      const resp = await imagekit.upload({
-        file: image.buffer,
-        fileName: image.originalname,
-      });
-      media_url = imagekit.url({
-        path: resp.filePath,
-        transformation: [{ quality: "auto" }, { format: "webp" }, { width: "1280" }],
-      });
-    } else if (file) {
+      const resp = await imagekit.upload({ file: req.files.image[0].buffer, fileName: req.files.image[0].originalname });
+      media_url = imagekit.url({ path: resp.filePath });
+    } else if (req.files?.file?.[0]) {
       message_type = "file";
-      const resp = await imagekit.upload({
-        file: file.buffer,
-        fileName: file.originalname,
-      });
+      const resp = await imagekit.upload({ file: req.files.file[0].buffer, fileName: req.files.file[0].originalname });
       media_url = resp.url;
-      file_name = file.originalname;
-      mime_type = file.mimetype;
+      file_name = req.files.file[0].originalname;
+      mime_type = req.files.file[0].mimetype;
     }
 
     const recipientKey = String(to_user_id);
@@ -124,29 +98,28 @@ export const sendMessage = async (req, res) => {
       text,
       message_type,
       media_url,
-      file_name: file_name || undefined,
-      mime_type: mime_type || undefined,
+      file_name,
+      mime_type,
       delivered: isRecipientConnected,
     });
 
-    // populate minimal sender info if you want
-    const messageWithUserData = await Message.findById(message._id).populate("from_user_id").lean();
+    const messageWithUser = await Message.findById(message._id).populate("from_user_id").lean();
 
-    // If recipient is connected, push message event and notify delivered
     if (isRecipientConnected) {
-      notifyUser(recipientKey, "message", messageWithUserData);
-
-      // also notify sender (if connected) that message is delivered
-      const senderKey = String(userId);
-      notifyUser(senderKey, "delivered", { messageIds: [String(message._id)], to_user_id: recipientKey });
+      // send message to recipient
+      notifyUser(recipientKey, "message", messageWithUser);
+      // mark delivered for sender
+      notifyUser(String(userId), "delivered", { messageIds: [String(message._id)], to_user_id: recipientKey });
     }
 
-    res.json({ success: true, message: messageWithUserData });
-  } catch (error) {
-    console.error("sendMessage error:", error);
-    res.status(500).json({ success: false, message: error.message });
+    res.json({ success: true, message: messageWithUser });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
+
+
 
 
 // Get Chat Messages -> also mark seen and notify sender(s)
@@ -208,3 +181,41 @@ export const getUserRecentMessages = async (req, res) => {
     res.json({ success: false, message: error.message });
   }
 };
+
+
+// controllers/messageController.js
+// Mark messages seen controller
+export const markMessagesSeenController = async (req, res) => {
+  try {
+    const { messageIds } = req.body;
+    if (!Array.isArray(messageIds) || !messageIds.length) {
+      return res.status(400).json({ success: false, message: "No messageIds provided" });
+    }
+
+    const updated = await Message.updateMany(
+      { _id: { $in: messageIds } },
+      { $set: { seen: true } }
+    );
+
+    // Notify senders
+    const messages = await Message.find({ _id: { $in: messageIds } }).lean();
+    const bySender = messages.reduce((acc, msg) => {
+      const from = String(msg.from_user_id);
+      acc[from] = acc[from] || [];
+      acc[from].push(String(msg._id));
+      return acc;
+    }, {});
+
+    for (const senderId of Object.keys(bySender)) {
+      notifyUser(senderId, "seen", { messageIds: bySender[senderId] });
+    }
+
+    res.json({ success: true, updatedCount: updated.modifiedCount ?? updated.nModified });
+  } catch (err) {
+    console.error("markMessagesSeenController error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+

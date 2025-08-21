@@ -4,6 +4,7 @@ import { upload } from "../config/multer.js";
 import { protect } from "../middlewares/auth.js";
 import {
   getChatMessages,
+  markMessagesSeenController,
   sendMessage,
   sseController,
 } from "../controllers/messageController.js";
@@ -24,5 +25,6 @@ messageRouter.post(
 );
 
 messageRouter.post("/get", protect, getChatMessages);
+messageRouter.post("/seen", protect, markMessagesSeenController);
 
 export default messageRouter;

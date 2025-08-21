@@ -84,6 +84,7 @@ const CreatePost = () => {
 
           {/* Text Area */}
           <textarea
+          rows={5}
             name=""
             id=""
             className=" w-full resize-none max-h-20 mt-4 text-sm outline-none placeholder-gray-400 "

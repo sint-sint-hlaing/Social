@@ -1,4 +1,3 @@
-// components/ChatBox.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { ImageIcon, Paperclip, SendHorizonal } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
@@ -19,10 +18,10 @@ const ChatBox = () => {
   const { messages } = useSelector((state) => state.messages);
   const connections = useSelector((state) => state.connections?.connections || []);
 
-  const { userId: otherUserId } = useParams(); // chat partner id from route
+  const { userId: otherUserId } = useParams();
   const { getToken } = useAuth();
-  const { user: clerkUser } = useUser(); // Clerk hook
-  const me = clerkUser?.id || clerkUser?._id || ""; // normalized current user id
+  const { user: clerkUser } = useUser();
+  const me = clerkUser?.id || clerkUser?._id || "";
   const dispatch = useDispatch();
 
   const [text, setText] = useState("");
@@ -33,25 +32,21 @@ const ChatBox = () => {
   const messagesEndRef = useRef(null);
   const sseRef = useRef(null);
 
-  // Helper: normalize sender id from message object (string or populated object)
   const getFromId = (message) => {
     const f = message?.from_user_id;
     if (!f) return "";
     if (typeof f === "string") return String(f);
-    // common object id fields
     if (f._id) return String(f._id);
     if (f.id) return String(f.id);
     if (f.userId) return String(f.userId);
     return "";
   };
 
-  // Fetch messages for this chat partner (calls your thunk which hits /api/message/get)
+  // Fetch messages
   const fetchUserMessages = async () => {
     try {
       const token = await getToken();
       await dispatch(fetchMessage({ token, userId: otherUserId })).unwrap();
-      // fetchMessage route should mark messages as seen server-side (your server's logic)
-      // After fetch, scroll to bottom (messages will update via slice)
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     } catch (error) {
       console.error("fetchUserMessages error:", error);
@@ -59,7 +54,7 @@ const ChatBox = () => {
     }
   };
 
-  // Send message (text/image/file)
+  // Send message
   const sendMessage = async () => {
     if (!text && !image && !file) return;
 
@@ -83,7 +78,6 @@ const ChatBox = () => {
       setImage(null);
       setFile(null);
 
-      // Upsert the returned message to avoid duplication if SSE also pushes it
       dispatch(upsertMessage(data.message));
       toast.success("Message sent!", { id: toastId });
     } catch (error) {
@@ -92,149 +86,74 @@ const ChatBox = () => {
     }
   };
 
-  // Load messages on mount and whenever the chat partner changes
   useEffect(() => {
     fetchUserMessages();
     return () => void dispatch(resetMessages());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [otherUserId]);
 
-  // Set chat partner user info from connections store (fallbacks possible)
-  useEffect(() => {
-    if (Array.isArray(connections) && connections.length > 0) {
-      // your connections items appear to use _id or id
-      const u = connections.find((c) => c._id === otherUserId || c.id === otherUserId);
-      setUser(u || null);
+  // SSE connection
+ useEffect(() => {
+  if (!me) return;
+
+  if (sseRef.current) sseRef.current.close();
+  const es = new EventSource(`/api/message/${me}`);
+  sseRef.current = es;
+
+  es.addEventListener("message", (ev) => {
+    const payload = JSON.parse(ev.data);
+    if (payload?._id) {
+      dispatch(upsertMessage(payload));
+      markIncomingMessagesSeen([payload]);
     }
+  });
+
+  es.addEventListener("delivered", (ev) => {
+    const payload = JSON.parse(ev.data);
+    const ids = (payload?.messageIds || []).map(String);
+    if (ids.length) dispatch(markMessagesDelivered(ids));
+  });
+
+  es.addEventListener("seen", (ev) => {
+    const payload = JSON.parse(ev.data);
+    const ids = (payload?.messageIds || []).map(String);
+    if (ids.length) dispatch(markMessagesSeen(ids));
+  });
+
+  return () => es.close();
+}, [me]);
+
+const markIncomingMessagesSeen = async (incomingMessages) => {
+  const unseenIds = incomingMessages
+    .filter(msg => getFromId(msg) !== me && !msg.seen)
+    .map(msg => msg._id);
+
+  if (!unseenIds.length) return;
+
+  try {
+    const token = await getToken();
+    await api.post("/api/message/seen", { messageIds: unseenIds }, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    dispatch(markMessagesSeen(unseenIds));
+  } catch (err) {
+    console.error("Failed to mark messages seen:", err);
+  }
+};
+
+
+
+
+  // Set chat partner info
+  useEffect(() => {
+    if (!connections.length) return;
+    const u = connections.find(c => c._id === otherUserId || c.id === otherUserId);
+    setUser(u || null);
   }, [connections, otherUserId]);
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // SSE: connect as current user (me). Only one EventSource; close previous if exists.
-  useEffect(() => {
-    if (!me) {
-      console.warn("SSE: current user id not available yet");
-      return;
-    }
-
-    // close previous ES if any
-    if (sseRef.current) {
-      try {
-        sseRef.current.close();
-      } catch (err) {
-        // ignore
-      }
-      sseRef.current = null;
-    }
-
-    
-    const url = `/api/message/${me}`; 
-
-    console.log("SSE: connecting to", url);
-    const es = new EventSource(url);
-    sseRef.current = es;
-
-    es.onopen = (ev) => {
-      console.log("SSE open", ev);
-    };
-
-    // Generic/default message event (server might send either named events or raw data)
-    es.onmessage = (ev) => {
-      try {
-        // try parse JSON; sometimes server might emit raw text
-        const payload = JSON.parse(ev.data);
-        console.log("SSE onmessage payload:", payload);
-
-        // If it's a message object (has _id or text or message_type), upsert it
-        if (payload && (payload._id || payload.message_type || payload.text || payload.media_url)) {
-          dispatch(upsertMessage(payload));
-          return;
-        }
-
-        // If it's a control object (messageIds etc.), handle similar to named events
-        if (payload && payload.messageIds) {
-          // infer type: server should send named events for clarity, but handle defensively
-          // If payload.by exists -> seen; else if payload.to_user_id exists -> delivered
-          if (payload.by) {
-            const ids = (payload.messageIds || []).map(String);
-            console.log("SSE onmessage inferred seen:", ids);
-            if (ids.length) dispatch(markMessagesSeen(ids));
-          } else {
-            const ids = (payload.messageIds || []).map(String);
-            console.log("SSE onmessage inferred delivered:", ids);
-            if (ids.length) dispatch(markMessagesDelivered(ids));
-          }
-          return;
-        }
-
-      } catch (err) {
-        console.warn("SSE onmessage parse error:", err, ev.data);
-      }
-    };
-
-    // Named 'message' event (some servers emit `event: message`)
-    es.addEventListener("message", (ev) => {
-      try {
-        const payload = JSON.parse(ev.data);
-        console.log("SSE event 'message' payload:", payload);
-        // handle like above
-        if (payload && (payload._id || payload.message_type || payload.text || payload.media_url)) {
-          dispatch(upsertMessage(payload));
-        }
-      } catch (err) {
-        console.error("SSE 'message' parse error:", err, ev.data);
-      }
-    });
-
-    // Named 'delivered' event
-    es.addEventListener("delivered", (ev) => {
-      try {
-        const payload = JSON.parse(ev.data); // { messageIds: [...], to_user_id }
-        console.log("SSE event 'delivered' received:", payload);
-        const ids = (payload?.messageIds || []).map(String);
-        if (ids.length) dispatch(markMessagesDelivered(ids));
-      } catch (err) {
-        console.error("SSE 'delivered' parse error:", err, ev.data);
-      }
-    });
-
-    // Named 'seen' event
-    es.addEventListener("seen", (ev) => {
-  console.log("SSE event 'seen' raw:", ev.data);
-  try {
-    const payload = JSON.parse(ev.data); // { messageIds: [...], by: userId } or { messages: [...] }
-    console.log("SSE 'seen' payload parsed:", payload);
-    const ids = (payload?.messageIds || payload?.messages?.map(m => m._id) || []).map(String);
-    if (ids.length) dispatch(markMessagesSeen(ids));
-    // If server sends full message objects, you could also dispatch upsert for each:
-    if (payload?.messages) {
-      payload.messages.forEach((m) => dispatch(upsertMessage(m)));
-    }
-  } catch (err) {
-    console.error("SSE 'seen' parse error:", err, ev.data);
-  }
-});
-
-    es.onerror = (err) => {
-      console.warn("SSE error", err);
-      // don't close here; EventSource will attempt reconnect automatically
-    };
-
-    return () => {
-      try {
-        es.close();
-        console.log("SSE closed");
-      } catch (err) {
-        // ignore
-      }
-      sseRef.current = null;
-    };
-  }, [me, dispatch]);
-
-  // Fallback minimal header while other user's profile is not yet available
   if (!user) {
     return (
       <div className="flex flex-col h-screen">
@@ -271,14 +190,12 @@ const ChatBox = () => {
             .map((message, index) => {
               const fromId = getFromId(message);
               const isMine = String(fromId) === String(me);
-
               const containerAlign = isMine ? "items-end" : "items-start";
               const bubbleRadius = isMine ? "rounded-bl-none" : "rounded-br-none";
 
               return (
                 <div key={message._id || index} className={`flex flex-col ${containerAlign}`}>
                   <div className={`p-2 text-sm max-w-sm bg-white rounded-lg shadow ${bubbleRadius}`}>
-                    {/* Image */}
                     {message.message_type === "image" && message.media_url && (
                       <img
                         src={message.media_url}
@@ -286,8 +203,6 @@ const ChatBox = () => {
                         alt={message.file_name || "image"}
                       />
                     )}
-
-                    {/* File */}
                     {message.message_type === "file" && message.media_url && (
                       <a
                         href={message.media_url}
@@ -300,22 +215,17 @@ const ChatBox = () => {
                         <span className="truncate">{message.file_name || "Download file"}</span>
                       </a>
                     )}
-
-                    {/* Text */}
                     {message.text && <p>{message.text}</p>}
 
-                    {/* status (for messages I sent) */}
-                    {isMine && (
-                      <div className="text-xs mt-1 text-gray-500 text-right">
-                        {message.seen ? (
-                          <span>Seen</span>
-                        ) : message.delivered ? (
-                          <span>Delivered</span>
-                        ) : (
-                          <span>Sent</span>
-                        )}
-                      </div>
-                    )}
+            {isMine && (
+  <div className="text-xs mt-1 text-gray-500 text-right">
+    {message.seen ? (
+      <span>Seen</span>
+    ) : message.delivered ? (
+      <span>Delivered</span>
+    ) : null}
+  </div>
+)}
                   </div>
                 </div>
               );
@@ -336,7 +246,6 @@ const ChatBox = () => {
             value={text}
           />
 
-          {/* Image picker */}
           <label htmlFor="image" className="cursor-pointer">
             {image ? (
               <img src={URL.createObjectURL(image)} alt="" className="w-8 h-8 object-cover rounded" />
@@ -352,7 +261,6 @@ const ChatBox = () => {
             />
           </label>
 
-          {/* File picker */}
           <label htmlFor="file" className="max-w-[120px] truncate cursor-pointer">
             {file ? (
               <span className="text-sm text-gray-600 truncate inline-block align-middle">
