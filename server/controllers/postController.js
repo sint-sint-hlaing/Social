@@ -11,7 +11,6 @@ export const addPost = async (req, res) => {
     const { content, post_type } = req.body;
     const images = req.files;
 
-      // Limit to 4 images
     if (images.length > 4) {
       return res.status(400).json({
         success: false,
@@ -20,46 +19,44 @@ export const addPost = async (req, res) => {
     }
 
     let image_urls = [];
-
     if (images.length) {
       image_urls = await Promise.all(
-  images.map(async (image) => {
-    // Use buffer directly if available, fallback to path
-    const fileBuffer = image.buffer || fs.readFileSync(image.path);
-
-    const response = await imagekit.upload({
-      file: fileBuffer,
-      fileName: image.originalname,
-      folder: "posts",
-    });
-
-    const url = imagekit.url({
-      path: response.filePath,
-      transformation: [
-        { quality: "auto" },
-        { format: "webp" },
-        { width: "512" },
-      ],
-    });
-
-    return url;
-  })
-);
-
+        images.map(async (image) => {
+          const fileBuffer = image.buffer || fs.readFileSync(image.path);
+          const response = await imagekit.upload({
+            file: fileBuffer,
+            fileName: image.originalname,
+            folder: "posts",
+          });
+          return response.url;
+        })
+      );
     }
-    await Post.create({
+
+    // create post
+    let newPost = await Post.create({
       user: userId,
       content,
       image_urls,
       post_type,
     });
-    res.json({ success: true, message: "Post Created Successfully" });
+
+    // populate user so frontend has everything
+    newPost = await newPost.populate("user");
+
+    res.json({
+      success: true,
+      message: "Post Created Successfully",
+      post: newPost,
+    });
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });
   }
 };
+
 //Get Posts;
+// Get Feed Posts
 export const getFeedPosts = async (req, res) => {
   try {
     const { userId } = req.auth();
@@ -71,32 +68,31 @@ export const getFeedPosts = async (req, res) => {
 
     const { search } = req.query;
 
-    let query = {};
+    let posts = [];
 
     if (search) {
-      // Search from ALL posts, not just connections/following
-      query.content = { $regex: search, $options: "i" };
+      // Search: only sort latest
+      posts = await Post.find({ content: { $regex: search, $options: "i" } })
+        .populate("user")
+        .sort({ createdAt: -1 });
     } else {
-      // Default feed: only from connections/following/self
-      query.user = { $in: userIds };
+      // 1. Get the latest post of the logged-in user
+      const latestPost = await Post.findOne({ user: userId })
+        .populate("user")
+        .sort({ createdAt: -1 });
+
+      // 2. Get random posts (excluding that latest one)
+      let randomPosts = await Post.aggregate([
+        { $match: { user: { $in: userIds } } },
+        ...(latestPost ? [{ $match: { _id: { $ne: latestPost._id } } }] : []),
+        { $sample: { size: 50 } },
+      ]);
+
+      randomPosts = await User.populate(randomPosts, { path: "user" });
+
+      // 3. Merge latestPost at top + random
+      posts = latestPost ? [latestPost, ...randomPosts] : randomPosts;
     }
-
-    let posts;
-
-if (search) {
-  posts = await Post.find({ content: { $regex: search, $options: "i" } })
-    .populate("user")
-    .sort({ createdAt: -1 }); // latest for search
-} else {
-  // Random posts for feed
-  posts = await Post.aggregate([
-    { $match: { user: { $in: userIds } } },
-    { $sample: { size: 50 } }, // get 50 random posts
-  ]);
-
-  // Populate user for aggregate results
-  posts = await User.populate(posts, { path: "user" });
-}
 
     res.json({ success: true, posts });
   } catch (error) {
@@ -104,6 +100,7 @@ if (search) {
     res.json({ success: false, message: error.message });
   }
 };
+
 
 // Delete Post
 export const deletePost = async (req, res) => {
