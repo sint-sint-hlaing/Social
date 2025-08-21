@@ -12,69 +12,73 @@ const connections = {};
 /** Utility: notify a connected user (if connected) with an SSE event */
 const notifyUser = (userId, eventName, payload) => {
   try {
-    if (!connections[userId]) return;
-    // SSE event with name `eventName`
-    connections[userId].write(`event: ${eventName}\n`);
-    connections[userId].write(`data: ${JSON.stringify(payload)}\n\n`);
+    const key = String(userId);
+    const res = connections[key];
+    if (!res) {
+      console.log(`notifyUser: no active SSE connection for ${key}`);
+      return;
+    }
+    res.write(`event: ${eventName}\n`);
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    console.log(`notifyUser: sent event '${eventName}' to ${key}`, payload);
   } catch (err) {
-    console.warn("notifyUser error:", err);
+    console.error("notifyUser error:", err);
   }
 };
 
-// SSE endpoint: client connects to receive realtime events
+// SSE controller
 export const sseController = (req, res) => {
-  // You pass userId as param (existing behavior). If you prefer to use auth, tweak accordingly.
   const { userId } = req.params;
-  console.log("SSE client connected:", userId);
+  const key = String(userId);
 
-  // SSE headers
+  console.log("SSE client connected :", key);
+
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
   res.setHeader("Access-Control-Allow-Origin", "*");
 
-  // keepAlive heartbeat (optional)
+  // heartbeat (optional)
   const keepAlive = setInterval(() => res.write(": keep-alive\n\n"), 25 * 1000);
 
-  // store
-  connections[userId] = res;
+  connections[key] = res;
 
-  // initial ping
   res.write("event: connected\n");
-  res.write(`data: ${JSON.stringify({ message: "connected" })}\n\n`);
+  res.write(`data: ${JSON.stringify({ message: "connected", userId: key })}\n\n`);
 
-  // When a user connects, mark any undelivered messages TO that user as delivered,
-  // and notify the original senders that those messages are delivered.
+  // When user connects, mark any undelivered messages TO them as delivered
   (async () => {
     try {
-      const pending = await Message.find({ to_user_id: userId, delivered: false });
-      if (pending.length) {
-        const groupedBySender = pending.reduce((acc, m) => {
-          acc[m.from_user_id] = acc[m.from_user_id] || [];
-          acc[m.from_user_id].push(m._id.toString());
+      const pending = await Message.find({ to_user_id: key, delivered: false }).lean();
+      if (pending && pending.length) {
+        const ids = pending.map((m) => String(m._id));
+        // mark delivered
+        await Message.updateMany({ to_user_id: key, delivered: false }, { delivered: true });
+
+        // For each distinct sender, notify them that their messages were delivered
+        const bySender = pending.reduce((acc, m) => {
+          const from = String(m.from_user_id);
+          acc[from] = acc[from] || [];
+          acc[from].push(String(m._id));
           return acc;
         }, {});
 
-        // mark them delivered
-        await Message.updateMany({ to_user_id: userId, delivered: false }, { delivered: true });
-
-        // notify each sender (if connected) that their messages were delivered
-        for (const senderId of Object.keys(groupedBySender)) {
-          const messageIds = groupedBySender[senderId];
-          notifyUser(senderId, "delivered", { messageIds, to_user_id: userId });
+        for (const senderId of Object.keys(bySender)) {
+          notifyUser(senderId, "delivered", { messageIds: bySender[senderId], to_user_id: key });
         }
       }
     } catch (err) {
-      console.error("Error processing pending delivered messages on SSE connect:", err);
+      console.error("Error marking pending delivered on connect:", err);
     }
   })();
 
   req.on("close", () => {
     clearInterval(keepAlive);
-    delete connections[userId];
-    console.log("SSE client disconnected:", userId);
+    delete connections[key];
+    console.log("SSE client disconnected:", key);
   });
 };
+
 
 // Send Message
 export const sendMessage = async (req, res) => {
@@ -82,7 +86,7 @@ export const sendMessage = async (req, res) => {
     const { userId } = req.auth();               // Clerk
     const { to_user_id, text } = req.body;
 
-    const image = req.files?.image?.[0] || null;  // from multer memory
+    const image = req.files?.image?.[0] || null;
     const file  = req.files?.file?.[0]  || null;
 
     let message_type = "text";
@@ -98,11 +102,7 @@ export const sendMessage = async (req, res) => {
       });
       media_url = imagekit.url({
         path: resp.filePath,
-        transformation: [
-          { quality: "auto" },
-          { format: "webp" },
-          { width: "1280" },
-        ],
+        transformation: [{ quality: "auto" }, { format: "webp" }, { width: "1280" }],
       });
     } else if (file) {
       message_type = "file";
@@ -115,8 +115,8 @@ export const sendMessage = async (req, res) => {
       mime_type = file.mimetype;
     }
 
-    // If recipient is connected via SSE, mark delivered immediately
-    const isRecipientConnected = Boolean(connections[to_user_id]);
+    const recipientKey = String(to_user_id);
+    const isRecipientConnected = Boolean(connections[recipientKey]);
 
     const message = await Message.create({
       from_user_id: userId,
@@ -126,26 +126,21 @@ export const sendMessage = async (req, res) => {
       media_url,
       file_name: file_name || undefined,
       mime_type: mime_type || undefined,
-      delivered: isRecipientConnected, // set delivered true if recipient is connected now
+      delivered: isRecipientConnected,
     });
 
-    // Populate before returning
-    const messageWithUserData = await Message.findById(message._id).populate("from_user_id");
+    // populate minimal sender info if you want
+    const messageWithUserData = await Message.findById(message._id).populate("from_user_id").lean();
 
-    // send to recipient over SSE if connected
+    // If recipient is connected, push message event and notify delivered
     if (isRecipientConnected) {
-      // push message
-      connections[to_user_id].write(`event: message\n`);
-      connections[to_user_id].write(`data: ${JSON.stringify(messageWithUserData)}\n\n`);
+      notifyUser(recipientKey, "message", messageWithUserData);
 
-      // notify sender (if they are connected) that their message is delivered
-      // (the sender may already get `delivered: true` via DB, but notify to update UI)
-      if (connections[userId]) {
-        notifyUser(userId, "delivered", { messageIds: [message._id.toString()], to_user_id });
-      }
+      // also notify sender (if connected) that message is delivered
+      const senderKey = String(userId);
+      notifyUser(senderKey, "delivered", { messageIds: [String(message._id)], to_user_id: recipientKey });
     }
 
-    // respond to POST caller immediately with created message
     res.json({ success: true, message: messageWithUserData });
   } catch (error) {
     console.error("sendMessage error:", error);
@@ -153,45 +148,49 @@ export const sendMessage = async (req, res) => {
   }
 };
 
-// Get Chat Message
+
+// Get Chat Messages -> also mark seen and notify sender(s)
 export const getChatMessages = async (req, res) => {
   try {
     const { userId } = req.auth();
     const { to_user_id } = req.body;
 
-    // fetch messages in ascending order (oldest first)
+    // fetch messages ascending
     const messages = await Message.find({
       $or: [
         { from_user_id: userId, to_user_id },
         { from_user_id: to_user_id, to_user_id: userId },
       ],
-    })
-      .sort({ createdAt: 1 })
-      .lean();
+    }).sort({ createdAt: 1 }).lean();
 
-    // mark message as seen (messages sent by the other user to current user)
-    const toMark = await Message.updateMany(
+    // mark messages sent by the other user as seen
+    const result = await Message.updateMany(
       { from_user_id: to_user_id, to_user_id: userId, seen: false },
       { seen: true }
     );
 
-    // If any were marked seen, inform their senders (the other user)
-    if (toMark.nModified && toMark.nModified > 0) {
-      // Find message ids that were changed
+    // if any were marked seen, notify the original sender (to_user_id)
+    // Note: result.modifiedCount for modern mongoose, result.nModified older
+    const modified = result.modifiedCount ?? result.nModified ?? 0;
+    if (modified > 0) {
+      // fetch the ids of messages now seen
       const seenMessages = await Message.find({
         from_user_id: to_user_id,
         to_user_id: userId,
         seen: true,
-      }).select("_id");
+      }).select("_id").lean();
 
-      const messageIds = seenMessages.map((m) => m._id.toString());
-      // notify the original sender (to_user_id of these messages' senders)
-      notifyUser(to_user_id, "seen", { messageIds, by: userId });
+      // notify original sender with the updated message objects
+    notifyUser(String(to_user_id), "seen", { messages: seenMessages, by: String(userId) });
+
+      const messageIds = seenMessages.map((m) => String(m._id));
+      // notify the original sender (the other party)
+      notifyUser(String(to_user_id), "seen", { messageIds, by: String(userId) });
     }
 
     res.json({ success: true, messages });
   } catch (error) {
-    console.log(error);
+    console.log("getChatMessages error:", error);
     res.json({ success: false, message: error.message });
   }
 };

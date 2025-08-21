@@ -51,32 +51,28 @@ const messagesSlice = createSlice({
      * upsertMessage:
      * - Convenience reducer to upsert a single message (used by SSE).
      */
-    upsertMessage: (state, action) => {
-      const m = action.payload;
-      const idx = state.messages.findIndex((x) => x._id === m._id);
-      if (idx === -1) state.messages.push(m);
-      else state.messages[idx] = { ...state.messages[idx], ...m };
+        upsertMessage(state, action) {
+      const msg = action.payload;
+      if (!msg || !msg._id) return;
+      const id = String(msg._id);
+      const idx = state.messages.findIndex(m => String(m._id) === id);
+      if (idx > -1) {
+        // merge existing (preserve other fields)
+        state.messages[idx] = { ...state.messages[idx], ...msg };
+      } else {
+        state.messages.push(msg);
+      }
     },
-
-    /**
-     * markMessagesDelivered:
-     * - Accepts array of message ids, sets delivered=true on matching messages.
-     */
-    markMessagesDelivered: (state, action) => {
-      const ids = Array.isArray(action.payload) ? action.payload : [action.payload];
-      state.messages = state.messages.map((m) =>
-        ids.includes(m._id) ? { ...m, delivered: true } : m
+    markMessagesDelivered(state, action) {
+      const ids = (action.payload || []).map(String);
+      state.messages = state.messages.map(m =>
+        ids.includes(String(m._id)) ? { ...m, delivered: true } : m
       );
     },
-
-    /**
-     * markMessagesSeen:
-     * - Accepts array of message ids, sets seen=true on matching messages.
-     */
-    markMessagesSeen: (state, action) => {
-      const ids = Array.isArray(action.payload) ? action.payload : [action.payload];
-      state.messages = state.messages.map((m) =>
-        ids.includes(m._id) ? { ...m, seen: true } : m
+    markMessagesSeen(state, action) {
+      const ids = (action.payload || []).map(String);
+      state.messages = state.messages.map(m =>
+        ids.includes(String(m._id)) ? { ...m, seen: true } : m
       );
     },
 

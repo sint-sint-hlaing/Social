@@ -19,9 +19,9 @@ const ChatBox = () => {
   const { messages } = useSelector((state) => state.messages);
   const connections = useSelector((state) => state.connections?.connections || []);
 
-  const { userId: otherUserId } = useParams(); // other user (chat partner)
+  const { userId: otherUserId } = useParams(); // chat partner id from route
   const { getToken } = useAuth();
-  const { user: clerkUser } = useUser(); // Clerk hook for the current user
+  const { user: clerkUser } = useUser(); // Clerk hook
   const me = clerkUser?.id || clerkUser?._id || ""; // normalized current user id
   const dispatch = useDispatch();
 
@@ -33,24 +33,28 @@ const ChatBox = () => {
   const messagesEndRef = useRef(null);
   const sseRef = useRef(null);
 
-  // Helper: normalize sender id from message object
+  // Helper: normalize sender id from message object (string or populated object)
   const getFromId = (message) => {
     const f = message?.from_user_id;
     if (!f) return "";
-    if (typeof f === "string") return f;
-    // If populated object, try common id fields
-    return (f._id && f._id.toString && f._id.toString()) ||
-           (f.id && f.id.toString && f.id.toString()) ||
-           (f.userId && f.userId.toString && f.userId.toString()) ||
-           "";
+    if (typeof f === "string") return String(f);
+    // common object id fields
+    if (f._id) return String(f._id);
+    if (f.id) return String(f.id);
+    if (f.userId) return String(f.userId);
+    return "";
   };
 
-  // Fetch messages for this user
+  // Fetch messages for this chat partner (calls your thunk which hits /api/message/get)
   const fetchUserMessages = async () => {
     try {
       const token = await getToken();
-      dispatch(fetchMessage({ token, userId: otherUserId }));
+      await dispatch(fetchMessage({ token, userId: otherUserId })).unwrap();
+      // fetchMessage route should mark messages as seen server-side (your server's logic)
+      // After fetch, scroll to bottom (messages will update via slice)
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     } catch (error) {
+      console.error("fetchUserMessages error:", error);
       toast.error(error.message || "Failed to fetch messages");
     }
   };
@@ -79,25 +83,26 @@ const ChatBox = () => {
       setImage(null);
       setFile(null);
 
-      // upsert the returned message so we don't duplicate if SSE also sends it
+      // Upsert the returned message to avoid duplication if SSE also pushes it
       dispatch(upsertMessage(data.message));
-
       toast.success("Message sent!", { id: toastId });
     } catch (error) {
+      console.error("sendMessage error:", error);
       toast.error(error.message || "Failed to send message", { id: toastId });
     }
   };
 
-  // Load messages on mount and when otherUserId changes
+  // Load messages on mount and whenever the chat partner changes
   useEffect(() => {
     fetchUserMessages();
     return () => void dispatch(resetMessages());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [otherUserId]);
 
-  // Set user info from connections (your existing connections store)
+  // Set chat partner user info from connections store (fallbacks possible)
   useEffect(() => {
     if (Array.isArray(connections) && connections.length > 0) {
+      // your connections items appear to use _id or id
       const u = connections.find((c) => c._id === otherUserId || c.id === otherUserId);
       setUser(u || null);
     }
@@ -108,62 +113,129 @@ const ChatBox = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // SSE: connect as current user (me)
+  // SSE: connect as current user (me). Only one EventSource; close previous if exists.
   useEffect(() => {
-    if (!me) return;
+    if (!me) {
+      console.warn("SSE: current user id not available yet");
+      return;
+    }
 
-    const url = `/api/sse/${me}`;
+    // close previous ES if any
+    if (sseRef.current) {
+      try {
+        sseRef.current.close();
+      } catch (err) {
+        // ignore
+      }
+      sseRef.current = null;
+    }
+
+    
+    const url = `/api/message/${me}`; 
+
+    console.log("SSE: connecting to", url);
     const es = new EventSource(url);
     sseRef.current = es;
 
-    es.addEventListener("connected", () => {
-      // optionally handle connect
-    });
+    es.onopen = (ev) => {
+      console.log("SSE open", ev);
+    };
 
-    // Incoming message (someone sent me a message)
+    // Generic/default message event (server might send either named events or raw data)
+    es.onmessage = (ev) => {
+      try {
+        // try parse JSON; sometimes server might emit raw text
+        const payload = JSON.parse(ev.data);
+        console.log("SSE onmessage payload:", payload);
+
+        // If it's a message object (has _id or text or message_type), upsert it
+        if (payload && (payload._id || payload.message_type || payload.text || payload.media_url)) {
+          dispatch(upsertMessage(payload));
+          return;
+        }
+
+        // If it's a control object (messageIds etc.), handle similar to named events
+        if (payload && payload.messageIds) {
+          // infer type: server should send named events for clarity, but handle defensively
+          // If payload.by exists -> seen; else if payload.to_user_id exists -> delivered
+          if (payload.by) {
+            const ids = (payload.messageIds || []).map(String);
+            console.log("SSE onmessage inferred seen:", ids);
+            if (ids.length) dispatch(markMessagesSeen(ids));
+          } else {
+            const ids = (payload.messageIds || []).map(String);
+            console.log("SSE onmessage inferred delivered:", ids);
+            if (ids.length) dispatch(markMessagesDelivered(ids));
+          }
+          return;
+        }
+
+      } catch (err) {
+        console.warn("SSE onmessage parse error:", err, ev.data);
+      }
+    };
+
+    // Named 'message' event (some servers emit `event: message`)
     es.addEventListener("message", (ev) => {
       try {
-        const msg = JSON.parse(ev.data);
-        dispatch(upsertMessage(msg));
+        const payload = JSON.parse(ev.data);
+        console.log("SSE event 'message' payload:", payload);
+        // handle like above
+        if (payload && (payload._id || payload.message_type || payload.text || payload.media_url)) {
+          dispatch(upsertMessage(payload));
+        }
       } catch (err) {
-        console.error("SSE message parse error:", err);
+        console.error("SSE 'message' parse error:", err, ev.data);
       }
     });
 
-    // Delivered event
+    // Named 'delivered' event
     es.addEventListener("delivered", (ev) => {
       try {
         const payload = JSON.parse(ev.data); // { messageIds: [...], to_user_id }
-        const ids = payload?.messageIds || [];
+        console.log("SSE event 'delivered' received:", payload);
+        const ids = (payload?.messageIds || []).map(String);
         if (ids.length) dispatch(markMessagesDelivered(ids));
       } catch (err) {
-        console.error("SSE delivered parse error:", err);
+        console.error("SSE 'delivered' parse error:", err, ev.data);
       }
     });
 
-    // Seen event
+    // Named 'seen' event
     es.addEventListener("seen", (ev) => {
-      try {
-        const payload = JSON.parse(ev.data); // { messageIds: [...], by: userId }
-        const ids = payload?.messageIds || [];
-        if (ids.length) dispatch(markMessagesSeen(ids));
-      } catch (err) {
-        console.error("SSE seen parse error:", err);
-      }
-    });
+  console.log("SSE event 'seen' raw:", ev.data);
+  try {
+    const payload = JSON.parse(ev.data); // { messageIds: [...], by: userId } or { messages: [...] }
+    console.log("SSE 'seen' payload parsed:", payload);
+    const ids = (payload?.messageIds || payload?.messages?.map(m => m._id) || []).map(String);
+    if (ids.length) dispatch(markMessagesSeen(ids));
+    // If server sends full message objects, you could also dispatch upsert for each:
+    if (payload?.messages) {
+      payload.messages.forEach((m) => dispatch(upsertMessage(m)));
+    }
+  } catch (err) {
+    console.error("SSE 'seen' parse error:", err, ev.data);
+  }
+});
 
     es.onerror = (err) => {
       console.warn("SSE error", err);
+      // don't close here; EventSource will attempt reconnect automatically
     };
 
     return () => {
-      es.close();
+      try {
+        es.close();
+        console.log("SSE closed");
+      } catch (err) {
+        // ignore
+      }
+      sseRef.current = null;
     };
   }, [me, dispatch]);
 
-  // If we don't have the other user's connection data, still render using a fallback header
+  // Fallback minimal header while other user's profile is not yet available
   if (!user) {
-    // Show a minimal header while waiting for connections lookup
     return (
       <div className="flex flex-col h-screen">
         <div className="flex items-center gap-2 p-2 md:px-10 xl:pl-40 bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-gray-300">
@@ -198,17 +270,14 @@ const ChatBox = () => {
             .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
             .map((message, index) => {
               const fromId = getFromId(message);
-              const isMine = fromId === me;
+              const isMine = String(fromId) === String(me);
 
-              // bubble alignment classes
               const containerAlign = isMine ? "items-end" : "items-start";
               const bubbleRadius = isMine ? "rounded-bl-none" : "rounded-br-none";
 
               return (
                 <div key={message._id || index} className={`flex flex-col ${containerAlign}`}>
-                  <div
-                    className={`p-2 text-sm max-w-sm bg-white rounded-lg shadow ${bubbleRadius}`}
-                  >
+                  <div className={`p-2 text-sm max-w-sm bg-white rounded-lg shadow ${bubbleRadius}`}>
                     {/* Image */}
                     {message.message_type === "image" && message.media_url && (
                       <img
