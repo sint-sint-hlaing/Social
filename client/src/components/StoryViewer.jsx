@@ -2,10 +2,11 @@ import { useAuth } from "@clerk/clerk-react";
 import { BadgeCheck, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import api from "../api/axios";
+import { Link } from "react-router-dom";
 
 const StoryViewer = ({ viewStory, setViewStory }) => {
   const [progress, setProgress] = useState(0);
-    const { getToken } = useAuth();
+  const { getToken } = useAuth();
   const [viewers, setViewers] = useState([]);
 
   useEffect(() => {
@@ -14,9 +15,13 @@ const StoryViewer = ({ viewStory, setViewStory }) => {
     const recordView = async () => {
       const token = await getToken();
       try {
-        const { data } = await api.post(`/api/story/view/${viewStory._id}`, {}, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const { data } = await api.post(
+          `/api/story/view/${viewStory._id}`,
+          {},
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         if (data.success) setViewers(data.viewers);
       } catch (error) {
         console.log(error.message);
@@ -25,7 +30,6 @@ const StoryViewer = ({ viewStory, setViewStory }) => {
 
     recordView();
   }, [viewStory]);
-
 
   useEffect(() => {
     let timer, progressInterval;
@@ -133,19 +137,37 @@ const StoryViewer = ({ viewStory, setViewStory }) => {
         {renderContent()}
       </div>
 
-
-
       <div className="absolute bottom-4 left-4 flex items-center gap-2">
-  {viewers.map((v) => (
-    <img
-      key={v._id}
-      src={v.profile_picture}
-      alt={v.full_name}
-      title={v.full_name}
-      className="w-6 h-6 rounded-full border border-white"
-    />
-  ))}
-</div>
+        <div className="flex -space-x-2">
+          {viewers.map((viewer) => (
+            <div key={viewer._id} className="relative group">
+              <Link to={`/profile/${viewer._id}`}>
+                <img
+                  src={viewer.profile_picture}
+                  alt={viewer.full_name}
+                  className="w-8 h-8 rounded-full border-2 border-white object-cover hover:scale-105 transition"
+                />
+              </Link>
+
+              {/* Tooltip */}
+              <div
+                className="absolute -top-8 left-1/2 -translate-x-1/2 
+                      px-2 py-1 bg-gray-800 text-white text-xs rounded-md 
+                      opacity-0 group-hover:opacity-100 transition text-nowrap"
+              >
+                {viewer.full_name}
+              </div>
+            </div>
+          ))}
+
+          {/* Show “+N more” */}
+          {viewers.length > 2 && (
+            <div className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs font-medium text-gray-600">
+              +{viewers.length - 2}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
