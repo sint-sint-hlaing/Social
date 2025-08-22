@@ -70,6 +70,12 @@ const UserCard = ({ user }) => {
             @{user.username}
           </p>
         )}
+
+        {user.year && (
+          <p className="text-gray-600 mt-2 text-center text-sm px-4">
+            {user.year}
+          </p>
+        )}
         {user.bio && (
           <p className="text-gray-600 mt-2 text-center text-sm px-4">
             {user.bio}

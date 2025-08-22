@@ -15,6 +15,7 @@ const ProfileModal = ({ setShowEdit }) => {
     username: user.username,
     bio: user.bio,
     location: user.location,
+    year: user.year,
     profile_picture: null,
     cover_photo: null,
     full_name: user.full_name,

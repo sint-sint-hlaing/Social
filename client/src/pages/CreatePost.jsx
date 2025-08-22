@@ -6,6 +6,7 @@ import { useSelector } from "react-redux";
 import { useAuth } from "@clerk/clerk-react";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
+import AutoResizeTextArea from "../components/AutoResizeTextArea";
 
 const CreatePost = () => {
   const navigate = useNavigate();
@@ -83,14 +84,7 @@ const CreatePost = () => {
           </div>
 
           {/* Text Area */}
-          <textarea
-            name=""
-            id=""
-            className=" w-full resize-none max-h-20 mt-4 text-sm outline-none placeholder-gray-400 "
-            placeholder="What's happening?"
-            onChange={(e) => setContent(e.target.value)}
-            value={content}
-          />
+          <AutoResizeTextArea content={content} setContent={setContent} />
           {/* Images */}
           {images.length > 0 && (
             <div className=" flex flex-wrap gap-2 mt-4">
