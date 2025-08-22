@@ -57,7 +57,10 @@ const RecentMessages = () => {
     <div className=" bg-white max-w-xs mt-4 p-4 min-h-20 rounded-md shadow text-xs text-slate-800">
       <h3 className=" font-semibold text-slate-800 mb-4">Recent Messages</h3>
       <div className="flex flex-col max-h-5/6 overflow-y-scroll no-scrollbar">
-        {messages.map((message, index) => (
+       {messages.length === 0 ? (
+        <p className="text-center text-slate-400 py-4">No recent messages yet!</p>
+      ) : (
+        messages.map((message, index) => (
           <Link
             to={`/messages/${message.from_user_id._id}`}
             key={index}
@@ -88,7 +91,8 @@ const RecentMessages = () => {
               </div>
             </div>
           </Link>
-        ))}
+        )))
+      }
       </div>
     </div>
   );
