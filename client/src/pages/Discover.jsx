@@ -33,7 +33,7 @@ const Discover = () => {
   const handleSearch = async (e) => {
     if (e.key === "Enter") {
       if (!input.trim()) {
-        fetchNewUsers(); // If search is empty, show 6 latest users
+        fetchNewUsers(); 
         return;
       }
 

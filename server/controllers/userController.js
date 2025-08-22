@@ -88,7 +88,7 @@ export const discoverUser = async (req, res) => {
         { username: new RegExp(input, "i") },
         { email: new RegExp(input, "i") },
         { full_name: new RegExp(input, "i") },
-        { location: new RegExp(input, "i") },
+        // { location: new RegExp(input, "i") },
       ],
     });
     const filteredUsers = allUsers.filter((user) => user._id !== userId);
@@ -366,7 +366,7 @@ export const getNewUsers = async (req, res) => {
 
     const users = await User.find({ _id: { $ne: userId } }) // exclude current user
       .sort({ createdAt: -1 }) // newest first
-      .limit(6);
+      
 
     res.json({ success: true, users });
   } catch (error) {

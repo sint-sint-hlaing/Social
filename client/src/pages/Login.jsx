@@ -26,13 +26,17 @@ const Login = () => {
 
       {/* Hero Section */}
       <div className="mt-10">
-        <h1 className="text-4xl md:text-6xl font-extrabold  leading-tight">
+        <h1 className="text-4xl md:text-6xl font-extrabold  leading-tight text-[#212121]">
           Share Knowledge, <br />
-          <span className="bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500 text-transparent bg-clip-text">
+          <span className="bg-gradient-to-r from-yellow-400 via-orange-600 to-pink-500 text-transparent bg-clip-text"> 
             Build Connections
           </span>
+        
         </h1>
-        <p className="mt-4 text-lg md:text-xl text-gray-200 max-w-xl">
+          <span className=" text-2xl font-bold text-gray-100 drop-shadow-md">
+            within Computer Students' Hub 
+          </span>
+        <p className="mt-4 text-lg md:text-xl text-gray-200 drop-shadow">
           Connect with classmates, exchange insights, and build lasting
           friendships on campus.
         </p>
