@@ -13,13 +13,13 @@ export const addUserStory = async (req, res) => {
     let media_url = ``;
 
     if (media_type === "image" || media_type === "video") {
-      const fileBuffer = fs.readFileSync(media.path);
-      const response = await imagekit.upload({
-        file: fileBuffer,
-        fileName: media.originalname,
-      });
-      media_url = response.url;
-    }
+  const fileBuffer = media.buffer; // memoryStorage => buffer only
+  const response = await imagekit.upload({
+    file: fileBuffer,
+    fileName: media.originalname,
+  });
+  media_url = response.url;
+}
 
     const story = await Story.create({
       user: userId,
