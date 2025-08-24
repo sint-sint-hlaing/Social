@@ -6,13 +6,14 @@ import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import api from "../api/axios";
 import {
-  addMessages,
   fetchMessage,
   resetMessages,
   markMessagesDelivered,
   markMessagesSeen,
   upsertMessage,
 } from "../features/messages/messagesSlice";
+
+import { io } from "socket.io-client"; // ✅ NEW
 
 const ChatBox = () => {
   const { messages } = useSelector((state) => state.messages);
@@ -32,7 +33,7 @@ const ChatBox = () => {
   const [user, setUser] = useState(null);
 
   const messagesEndRef = useRef(null);
-  const sseRef = useRef(null);
+  const socketRef = useRef(null); // ✅ NEW
 
   const getFromId = (message) => {
     const f = message?.from_user_id;
@@ -93,38 +94,38 @@ const ChatBox = () => {
     return () => void dispatch(resetMessages());
   }, [otherUserId]);
 
-  // SSE connection
+  // ✅ SOCKET.IO connection instead of SSE
   useEffect(() => {
     if (!me) return;
 
-    if (sseRef.current) sseRef.current.close();
-
-    const es = new EventSource(
-      `${import.meta.env.VITE_BASEURL}/api/message/${me}`
-    );
-    sseRef.current = es;
-
-    es.addEventListener("message", (ev) => {
-      const payload = JSON.parse(ev.data);
-      if (payload?._id) {
-        dispatch(upsertMessage(payload));
-        markIncomingMessagesSeen([payload]);
-      }
+    const socket = io(import.meta.env.VITE_BASEURL, {
+      withCredentials: true,
+      transports: ["websocket"], // force websocket (avoid long polling on Render)
     });
 
-    es.addEventListener("delivered", (ev) => {
-      const payload = JSON.parse(ev.data);
+    socketRef.current = socket;
+
+    socket.emit("register", me); // register userId with server
+
+    // incoming new message
+    socket.on("message", (msg) => {
+      dispatch(upsertMessage(msg));
+      markIncomingMessagesSeen([msg]);
+    });
+
+    // delivered receipts
+    socket.on("delivered", (payload) => {
       const ids = (payload?.messageIds || []).map(String);
       if (ids.length) dispatch(markMessagesDelivered(ids));
     });
 
-    es.addEventListener("seen", (ev) => {
-      const payload = JSON.parse(ev.data);
+    // seen receipts
+    socket.on("seen", (payload) => {
       const ids = (payload?.messageIds || []).map(String);
       if (ids.length) dispatch(markMessagesSeen(ids));
     });
 
-    return () => es.close();
+    return () => socket.disconnect();
   }, [me]);
 
   const markIncomingMessagesSeen = async (incomingMessages) => {
