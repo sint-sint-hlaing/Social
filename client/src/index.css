@@ -8,3 +8,10 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+.cl-profileSection__danger {
+  display: none !important;
+}
+
+
+
