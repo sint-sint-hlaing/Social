@@ -7,8 +7,9 @@ import {
   Bookmark,
   ChevronLeft,
   ChevronRight,
-  Download,
   X,
+  Trash2,
+  Edit2,
 } from "lucide-react";
 import moment from "moment";
 import { useNavigate } from "react-router-dom";
@@ -17,26 +18,27 @@ import { useAuth } from "@clerk/clerk-react";
 import api from "../api/axios";
 import toast from "react-hot-toast";
 import CommentModal from "./CommentModal";
+import EditPostModal from "./EditPostModal";
 
 const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
+  const [postData, setPostData] = useState(post); // <- Local state for re-render
   const [likes, setLikes] = useState(post.likes_count);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [commentCount, setCommentCount] = useState(post.comments?.length || 0);
   const [saved, setSaved] = useState(post.savedByCurrentUser || false);
   const [confirmDeleteModal, setConfirmDeleteModal] = useState(false);
-  const [previewImage, setPreviewImage] = useState(null);
   const [previewIndex, setPreviewIndex] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const { getToken } = useAuth();
   const currentUser = useSelector((state) => state.user.value);
   const navigate = useNavigate();
-  const user = post.user;
+  const user = postData.user;
 
   // Render content with clickable links and hashtags
   const renderContent = (text) => {
     if (!text) return null;
-
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const parts = text.split(urlRegex);
 
@@ -76,14 +78,14 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
     try {
       const token = await getToken();
       const { data } = await api.post(
-        `/api/saved/toggle/${post._id}`,
+        `/api/saved/toggle/${postData._id}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (data.success) {
         setSaved(data.saved);
         toast.success(data.message);
-        if (onToggleSaved) onToggleSaved(post._id, data.saved);
+        if (onToggleSaved) onToggleSaved(postData._id, data.saved);
       } else {
         toast.error(data.message);
       }
@@ -96,7 +98,7 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
     try {
       const { data } = await api.post(
         `/api/post/like`,
-        { postId: post._id },
+        { postId: postData._id },
         { headers: { Authorization: `Bearer ${await getToken()}` } }
       );
       if (data.success) {
@@ -114,10 +116,10 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
 
   const handleDelete = async () => {
     try {
-      const { data } = await api.delete(`/api/post/${post._id}`, {
+      const { data } = await api.delete(`/api/post/${postData._id}`, {
         headers: { Authorization: `Bearer ${await getToken()}` },
       });
-      if (data.success && onDelete) onDelete(post._id);
+      if (data.success && onDelete) onDelete(postData._id);
       toast.success(data.message);
       setConfirmDeleteModal(false);
     } catch (error) {
@@ -144,7 +146,7 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
               {user._id && <BadgeCheck className="w-4 h-4 text-blue-500" />}
             </div>
             <div className="text-gray-500 text-sm">
-              @{user.username} . {moment(post.createdAt).fromNow()}
+              @{user.username} . {moment(postData.createdAt).fromNow()}
             </div>
           </div>
         </div>
@@ -157,37 +159,54 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
               onClick={() => setMenuOpen((prev) => !prev)}
             />
             {menuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-10">
-                <button
-                  onClick={() => setConfirmDeleteModal(true)}
-                  className="flex items-center justify-center gap-2 px-4 py-2 text-red-600 font-medium rounded-lg hover:bg-red-50 active:bg-red-100 transition-colors duration-150 w-full"
-                >
-                  Delete
-                </button>
-              </div>
-            )}
+  <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden z-20 animate-fade-in">
+    
+    {/* Delete Button */}
+    <button
+      onClick={() => setConfirmDeleteModal(true)}
+      className="flex items-center gap-2 px-4 py-3 text-red-600 font-semibold rounded-t-lg hover:bg-red-100 transition-colors duration-200 w-full"
+    >
+      <Trash2 className="w-4 h-4" />
+      Delete
+    </button>
+    
+    {/* Divider */}
+    <div className="border-t border-gray-100"></div>
+
+    {/* Edit Button */}
+    <button
+      onClick={() => setIsEditModalOpen(true)}
+      className="flex items-center gap-2 px-4 py-3 text-gray-800 font-semibold hover:bg-gray-200 transition-colors duration-200 w-full rounded-b-lg"
+    >
+      <Edit2 className="w-4 h-4" />
+      Edit
+    </button>
+
+  </div>
+)}
+
           </div>
         )}
       </div>
 
       {/* Content */}
-      {post.content && (
+      {postData.content && (
         <div className="text-gray-800 text-sm whitespace-pre-line">
-          {renderContent(post.content)}
+          {renderContent(postData.content)}
         </div>
       )}
 
       {/* Images */}
       <div className="grid grid-cols-2 gap-2">
-        {post.image_urls?.map((img, index) => (
+        {postData.image_urls?.map((img, index) => (
           <img
             src={img}
             key={index}
             className={`w-full h-48 object-cover rounded-lg ${
-              post.image_urls.length === 1 && "col-span-2 h-auto"
+              postData.image_urls.length === 1 && "col-span-2 h-auto"
             } cursor-pointer`}
             alt=""
-            onClick={() => setPreviewIndex(index)} // <-- open preview by index
+            onClick={() => setPreviewIndex(index)}
           />
         ))}
       </div>
@@ -225,7 +244,7 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
       <CommentModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        postId={post._id}
+        postId={postData._id}
         onCommentAdded={() => setCommentCount((prev) => prev + 1)}
         onCommentDeleted={() => setCommentCount((prev) => prev - 1)}
       />
@@ -270,7 +289,6 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
           className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
           onClick={() => setPreviewIndex(null)}
         >
-          {/* Close Button */}
           <button
             className="absolute top-4 right-4 bg-white/30 hover:bg-white/60 text-white rounded-full p-2 shadow-lg transition"
             onClick={(e) => {
@@ -281,34 +299,31 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
             <X className="w-6 h-6 text-black" />
           </button>
 
-          {/* Left Arrow */}
           <button
             className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/60 text-white rounded-full p-3 shadow-lg transition"
             onClick={(e) => {
               e.stopPropagation();
               setPreviewIndex((prev) =>
-                prev > 0 ? prev - 1 : post.image_urls.length - 1
+                prev > 0 ? prev - 1 : postData.image_urls.length - 1
               );
             }}
           >
             <ChevronLeft className="w-6 h-6 text-black" />
           </button>
 
-          {/* Image */}
           <img
-            src={post.image_urls[previewIndex]}
+            src={postData.image_urls[previewIndex]}
             alt=""
             className="max-h-[90%] max-w-[90%] rounded-lg shadow-lg"
             onClick={(e) => e.stopPropagation()}
           />
 
-          {/* Right Arrow */}
           <button
             className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/60 text-white rounded-full p-3 shadow-lg transition"
             onClick={(e) => {
               e.stopPropagation();
               setPreviewIndex((prev) =>
-                prev < post.image_urls.length - 1 ? prev + 1 : 0
+                prev < postData.image_urls.length - 1 ? prev + 1 : 0
               );
             }}
           >
@@ -316,6 +331,18 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
           </button>
         </div>
       )}
+
+      {/* Edit Post Modal */}
+      <EditPostModal
+        post={postData}
+        isOpen={isEditModalOpen}
+        setMenuOpen={setMenuOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onUpdated={(updatedPost) => {
+          setPostData(updatedPost); // <- updates feed immediately
+          toast.success("Post updated!");
+        }}
+      />
     </div>
   );
 };

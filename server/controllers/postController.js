@@ -117,7 +117,7 @@ export const deletePost = async (req, res) => {
     // Delete the post itself
     await Post.findByIdAndDelete(id);
 
-    res.json({ success: true, message: "Post and its comments deleted successfully" });
+    res.json({ success: true, message: "Post deleted successfully" });
   } catch (error) {
     console.log(error);
     res.status(500).json({ success: false, message: error.message });
@@ -144,5 +144,60 @@ export const likePost = async (req, res) => {
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });
+  }
+};
+
+
+// Update Post
+export const updatePost = async (req, res) => {
+  try {
+    const { userId } = req.auth();
+    const { id } = req.params;
+
+    // Parse content and existingImages
+    let { content, existingImages } = req.body;
+    existingImages = existingImages ? JSON.parse(existingImages) : [];
+
+    const images = req.files;
+
+    const post = await Post.findById(id);
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+
+    if (post.user.toString() !== userId) {
+      return res.status(403).json({ success: false, message: "You can't edit this post" });
+    }
+
+    // Start with existing images
+    let image_urls = [...existingImages];
+
+    // Upload new images
+    if (images?.length) {
+      const uploadedUrls = await Promise.all(
+        images.map(async (image) => {
+          const fileBuffer = image.buffer || fs.readFileSync(image.path);
+          const response = await imagekit.upload({
+            file: fileBuffer,
+            fileName: image.originalname,
+            folder: "posts",
+          });
+          return response.url;
+        })
+      );
+      image_urls.push(...uploadedUrls);
+    }
+
+    // Update post directly to avoid version error
+    const updatedPost = await Post.findByIdAndUpdate(
+      id,
+      { content: content || post.content, image_urls },
+      { new: true } // return updated doc
+    ).populate("user");
+
+    res.json({ success: true, message: "Post updated successfully", post: updatedPost });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
