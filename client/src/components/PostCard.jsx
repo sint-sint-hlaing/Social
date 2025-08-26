@@ -30,6 +30,8 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
   const [confirmDeleteModal, setConfirmDeleteModal] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [showFullContent, setShowFullContent] = useState(false);
+const MAX_LENGTH = 150;
 
   const { getToken } = useAuth();
   const currentUser = useSelector((state) => state.user.value);
@@ -191,10 +193,23 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
 
       {/* Content */}
       {postData.content && (
-        <div className="text-gray-800 text-sm whitespace-pre-line">
-          {renderContent(postData.content)}
-        </div>
-      )}
+  <div className="text-gray-800 text-sm whitespace-pre-line">
+    {showFullContent
+      ? renderContent(postData.content)
+      : renderContent(postData.content.slice(0, MAX_LENGTH))}
+
+    {/* Toggle button only if content is long */}
+    {postData.content.length > MAX_LENGTH && (
+      <button
+        className="ml-1 text-cyan-700 font-medium hover:underline"
+        onClick={() => setShowFullContent((prev) => !prev)}
+      >
+        {showFullContent ? "See less" : "... See more"}
+      </button>
+    )}
+  </div>
+)}
+
 
       {/* Images */}
       <div className="grid grid-cols-2 gap-2">

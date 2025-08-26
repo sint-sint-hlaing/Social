@@ -133,8 +133,8 @@ const Profile = () => {
         key={tab}
         className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
           activeTab === tab
-            ? "bg-teal-800 text-white"
-            : "text-teal-600 hover:text-teal-900"
+            ? "bg-cyan-500 text-white"
+            : "text-cyan-600 hover:text-cyan-500"
         }`}
       >
         {tab.charAt(0).toUpperCase() + tab.slice(1)}
