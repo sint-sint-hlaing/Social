@@ -7,8 +7,11 @@ import {
 } from "lucide-react";
 import React from "react";
 import moment from "moment";
+import { useSelector } from "react-redux";
 
 const UserProfileInfo = ({ user, posts, profileId, setShowEdit }) => {
+  const currentUser = useSelector((state) => state.user.value);
+
   return (
     <div className="relative py-4 px-6 md:px-8 bg-white">
       <div className="flex flex-col md:flex-row items-start gap-6">
@@ -34,15 +37,15 @@ const UserProfileInfo = ({ user, posts, profileId, setShowEdit }) => {
               </p>
             </div>
             {/* if user is not on others profile that means he is opening his profile so we will give edit button */}
-            {!profileId && (
-              <button
-                onClick={() => setShowEdit(true)}
-                className="flex items-center gap-2 border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-lg font-medium transition-colors mt-4 md:mt-0 cursor-pointer"
-              >
-                <PenBox className="w-4 h-4" />
-                Edit
-              </button>
-            )}
+            {currentUser?._id === user._id && (
+  <button
+    onClick={() => setShowEdit(true)}
+    className="flex items-center gap-2 border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-lg font-medium transition-colors mt-4 md:mt-0 cursor-pointer"
+  >
+    <PenBox className="w-4 h-4" />
+    Edit
+  </button>
+)}
           </div>
           <p className="text-gray-700 text-sm max-w-md mt-4">{user.bio}</p>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500 mt-4">
