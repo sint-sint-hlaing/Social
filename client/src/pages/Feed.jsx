@@ -91,12 +91,12 @@ const Feed = () => {
               }
             }}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 p-2 border border-orange-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="flex-1 p-2 border border-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
           />
 
           <button
             onClick={handleSearchClick}
-            className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 flex items-center gap-1"
+            className="bg-cyan-500 text-white px-4 py-2 rounded-lg hover:bg-cyan-600 flex items-center gap-1"
           >
             <Search size={20} className="w-4 h-4" />
           </button>

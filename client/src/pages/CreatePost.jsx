@@ -138,7 +138,7 @@ const CreatePost = () => {
                 })
               }
               disabled={loading}
-              className=" text-sm bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500  active:scale-95 transition text-white font-medium px-8 py-2 rounded-md cursor-pointer"
+              className=" text-sm bg-cyan-500 hover:bg-cyan-600  active:scale-95 transition text-white font-medium px-8 py-2 rounded-md cursor-pointer"
             >
               Publish Post
             </button>

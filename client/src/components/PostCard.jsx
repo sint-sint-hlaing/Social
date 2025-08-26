@@ -234,7 +234,7 @@ const PostCard = ({ post, onDelete, onToggleSaved, onClickHashtag }) => {
         <button onClick={handleSave} className="px-2 py-1 rounded">
           <Bookmark
             className={`w-4 h-4 cursor-pointer transition-colors ${
-              saved ? "text-orange-500" : ""
+              saved ? "text-cyan-500" : ""
             }`}
           />
         </button>

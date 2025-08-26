@@ -155,7 +155,7 @@ const CommentModal = ({
           />
           <button
             onClick={handleAddComment}
-            className="bg-orange-500 hover:bg-orange-600 active:scale-95 cursor-pointer text-white p-2 rounded-full text-sm"
+            className="bg-cyan-500 hover:bg-cyan-600 active:scale-95 cursor-pointer text-white p-2 rounded-full text-sm"
           >
             <SendHorizonal size={18} />
           </button>

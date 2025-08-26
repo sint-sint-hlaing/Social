@@ -20,8 +20,8 @@ const MenuItems = ({ setSidebarOpen }) => {
             className={({ isActive }) =>
               `px-3.5 py-2 flex items-center gap-3 rounded-xl ${
                 isActive
-                  ? "bg-orange-100 text-orange-500"
-                  : "hover:bg-orange-100"
+                  ? "bg-cyan-50 text-cyan-600"
+                  : "hover:bg-cyan-50"
               }`
             }
             onClick={() => setSidebarOpen(false)}

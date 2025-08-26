@@ -173,7 +173,7 @@ const Connections = () => {
                   <div className="flex max-sm:flex-col gap-2 mt-4">
                     <button
                       onClick={() => navigate(`/profile/${user._id}`)}
-                      className="w-full p-2 text-sm rounded bg-orange-100 hover:bg-orange-200 text-orange-800 active:scale-95 transition cursor-pointer"
+                      className="w-full p-2 text-sm rounded bg-cyan-100 hover:bg-cyan-200 text-cyan-800 active:scale-95 transition cursor-pointer"
                     >
                       View Profile
                     </button>

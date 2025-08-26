@@ -304,7 +304,7 @@ const ChatBox = () => {
 
           <button
             onClick={sendMessage}
-            className="bg-orange-500 hover:bg-orange-600 active:scale-95 cursor-pointer text-white p-2 rounded-full"
+            className="bg-cyan-500 hover:bg-cyan-600 active:scale-95 cursor-pointer text-white p-2 rounded-full"
           >
             <SendHorizonal size={18} />
           </button>
