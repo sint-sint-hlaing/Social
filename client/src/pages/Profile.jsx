@@ -47,10 +47,10 @@ const Profile = () => {
         // 👉 by default, tab "posts" shows userPosts
         setPosts(postsWithSaved);
       } else {
-        toast.error(data.message);
+        console.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error(error.message);
     }
   };
 
@@ -69,7 +69,7 @@ const Profile = () => {
         setPosts(savedPosts);
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error(error.message);
     }
   };
 

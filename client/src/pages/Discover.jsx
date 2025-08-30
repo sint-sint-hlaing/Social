@@ -23,9 +23,9 @@ const Discover = () => {
         headers: { Authorization: `Bearer ${await getToken()}` },
       });
       if (data.success) setUsers(data.users);
-      else toast.error(data.message);
+      else console.error(data.message);
     } catch (error) {
-      toast.error(error.message);
+      console.error(error.message);
     }
     setLoading(false);
   };
@@ -50,10 +50,10 @@ const Discover = () => {
         if (data.success) {
           setUsers(data.users);
         } else {
-          toast.error(data.message);
+          console.error(data.message);
         }
       } catch (error) {
-        toast.error(error.message);
+        console.error(error.message);
       }
       setLoading(false);
     }

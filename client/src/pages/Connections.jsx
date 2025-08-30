@@ -46,10 +46,10 @@ const Connections = () => {
         toast.success(data.message);
         dispatch(fetchConnections(token));
       } else {
-        toast.error(data.message);
+        console.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error(error.message);
     }
   };
 
@@ -69,10 +69,10 @@ const Connections = () => {
         toast.success(data.message);
         dispatch(fetchConnections(token));
       } else {
-        toast.error(data.message);
+        console.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error(error.message);
     }
   };
 
@@ -92,10 +92,10 @@ const Connections = () => {
         setFollowedIds((prev) => new Set(prev).add(userId));
         dispatch(fetchConnections(token)); // refresh from backend too
       } else {
-        toast.error(data.message);
+        console.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error(error.message);
     }
   };
 

@@ -89,10 +89,10 @@ const MAX_LENGTH = 150;
         toast.success(data.message);
         if (onToggleSaved) onToggleSaved(postData._id, data.saved);
       } else {
-        toast.error(data.message);
+        console.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error(error.message);
     }
   };
 
@@ -110,9 +110,9 @@ const MAX_LENGTH = 150;
             : [...prev, currentUser._id]
         );
         toast.success(data.message);
-      } else toast.error(data.message);
+      } else console.error(data.message);
     } catch (error) {
-      toast.error(error.message);
+      console.error(error.message);
     }
   };
 
@@ -125,7 +125,7 @@ const MAX_LENGTH = 150;
       toast.success(data.message);
       setConfirmDeleteModal(false);
     } catch (error) {
-      toast.error(error.message);
+      console.error(error.message);
     }
   };
 

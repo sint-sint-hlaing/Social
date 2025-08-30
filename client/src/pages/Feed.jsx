@@ -36,7 +36,7 @@ const Feed = () => {
       if (data.success) return data.posts.map((p) => p._id.toString());
       return [];
     } catch (error) {
-      toast.error(error.message);
+      console.error(error.message);
       return [];
     }
   };
@@ -62,9 +62,9 @@ const Feed = () => {
         }));
 
         setFeeds(feedsWithSaved);
-      } else toast.error(data.message);
+      } else console.error(data.message);
     } catch (error) {
-      toast.error(error.message);
+      console.error(error.message);
     }
     setLoading(false);
   };

@@ -25,10 +25,10 @@ const UserCard = ({ user }) => {
         toast.success(data.message);
         dispatch(fetchUser(await getToken()));
       } else {
-        toast.error(data.message);
+        console.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error(error.message);
     }
   };
 
@@ -44,10 +44,10 @@ const UserCard = ({ user }) => {
         toast.success(data.message);
         dispatch(fetchUser(await getToken()));
       } else {
-        toast.error(data.message);
+        console.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error(error.message);
     }
   };
 

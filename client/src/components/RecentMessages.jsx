@@ -36,10 +36,10 @@ const RecentMessages = () => {
         );
         setMessages(sortedMessages);
       } else {
-        toast.error(data.message);
+        console.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error(error.message);
     }
   };
 

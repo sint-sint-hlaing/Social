@@ -24,9 +24,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     >
       {/* Top Section */}
       <div className="w-full">
-        <div className="flex items-center justify-center p-3">
+        <Link
+          to="/" className="flex items-center justify-center p-3">
           <Logo />
-        </div>
+        </Link>
         <hr className="border-gray-300 mb-8" />
         <MenuItems setSidebarOpen={setSidebarOpen} />
         <Link

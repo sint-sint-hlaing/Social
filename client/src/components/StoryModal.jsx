@@ -91,10 +91,10 @@ const StoryModal = ({ setShowModal, fetchStories }) => {
         toast.success("Story created successfully");
         fetchStories();
       } else {
-        toast.error(data.message);
+        console.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error(error.message);
     }
   };
 
